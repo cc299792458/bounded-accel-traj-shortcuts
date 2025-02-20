@@ -1,8 +1,11 @@
-import numpy as np
 import random
+import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.patches import Ellipse
 
+from matplotlib.patches import Ellipse
+from rrt import rrt
+
+# Scene class with obstacles and plot method
 class Scene:
     """
     A class representing a 10x10 scene with random elliptical obstacles.
@@ -60,10 +63,18 @@ class Scene:
         pos = state[0]
         return self._is_point_collision_free(pos)
     
-    def plot_scene(self, ax=None):
+    def plot_scene(self, tree=None, path=None, ax=None):
+        """
+        Plot the scene, including obstacles, start/goal points, the RRT search tree, and the found path.
+        
+        Parameters:
+          - tree: (Optional) List of RRT nodes. If provided, plot tree edges with yellow lines (alpha=0.8).
+          - path: (Optional) The found path as a sequence of states. If provided, plot the path with a bold red line.
+          - ax: (Optional) Matplotlib axis to plot on.
+        """
         if ax is None:
             fig, ax = plt.subplots(figsize=(8, 8))
-        # Plot obstacles as ellipses
+        # Plot obstacles
         for (center, rx, ry, theta) in self.obstacles:
             ellipse = Ellipse(xy=center, width=2*rx, height=2*ry, angle=np.degrees(theta),
                               edgecolor='r', facecolor='gray', alpha=0.5)
@@ -71,11 +82,23 @@ class Scene:
         # Plot start and goal points
         ax.plot(self.start[0], self.start[1], 'go', markersize=10, label='Start')
         ax.plot(self.goal[0], self.goal[1], 'bo', markersize=10, label='Goal')
+        # Plot RRT tree edges if tree is provided
+        if tree is not None:
+            for node in tree:
+                if node.parent is not None:
+                    p1 = node.parent.position
+                    p2 = node.position
+                    ax.plot([p1[0], p2[0]], [p1[1], p2[1]], color='yellow', alpha=0.8)
+        # Plot found path if provided
+        if path is not None:
+            path_positions = np.array([state[0] for state in path])
+            ax.plot(path_positions[:, 0], path_positions[:, 1], color='red', linewidth=3, label='Path')
+        # Set plot limits and labels
         x_min, x_max, y_min, y_max = self.bounds
         ax.set_xlim(x_min, x_max)
         ax.set_ylim(y_min, y_max)
         ax.set_aspect('equal')
-        ax.set_title("Scene with Random Elliptical Obstacles")
+        ax.set_title("Scene with Random Elliptical Obstacles and RRT")
         ax.set_xlabel("X")
         ax.set_ylabel("Y")
         ax.legend()
@@ -90,11 +113,15 @@ if __name__ == "__main__":
     print("Scene bounds:", scene.bounds)
     print("Start point:", scene.start)
     print("Goal point:", scene.goal)
-    print("Obstacles:")
-    for obs in scene.obstacles:
-        center, rx, ry, theta = obs
-        print("  Center:", center, "rx:", rx, "ry:", ry, "theta (rad):", theta)
     
-    # Plot the scene
-    ax = scene.plot_scene()
+    # Run RRT on the scene using its collision_checker and bounds
+    path, tree = rrt(scene.start, scene.goal, scene.bounds, collision_checker=scene.collision_checker, step_size=0.5, max_iterations=1000)
+    
+    if path is not None:
+        print("RRT found a path.")
+    else:
+        print("No path was found.")
+    
+    # Plot the scene, the RRT tree, and the found path
+    ax = scene.plot_scene(tree=tree, path=path)
     plt.show()

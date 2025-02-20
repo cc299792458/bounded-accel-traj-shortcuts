@@ -14,8 +14,8 @@ def default_collision_checker(state):
 
 def rrt(start, goal, bounds, collision_checker=default_collision_checker, step_size=0.5, max_iterations=1000):
     """
-    A simple RRT planner.
-
+    A simple RRT planner that also saves the search tree.
+    
     Parameters:
       - start: Start position as a numpy array, e.g. np.array([x, y])
       - goal: Goal position as a numpy array, e.g. np.array([x, y])
@@ -23,10 +23,12 @@ def rrt(start, goal, bounds, collision_checker=default_collision_checker, step_s
       - collision_checker: Function to check if a state (position, velocity) is collision-free
       - step_size: The step size to extend towards the random sample
       - max_iterations: Maximum number of iterations to try
-
+      
     Returns:
-      - If a path is found, returns a numpy array of states, each state is a tuple (position, velocity).
-        If no path is found, returns None.
+      - A tuple (path_states, tree):
+          path_states: If a path is found, a numpy array of states, each state is a tuple (position, velocity).
+                       Otherwise, None.
+          tree: List of all nodes explored (the search tree).
     """
     nodes = []
     start_node = Node(start)
@@ -81,21 +83,6 @@ def rrt(start, goal, bounds, collision_checker=default_collision_checker, step_s
             
             # Convert the path to the state format required by Smoother (velocity set to zero)
             path_states = [(pos, np.zeros_like(pos)) for pos in path]
-            return np.array(path_states, dtype=object)
+            return np.array(path_states, dtype=object), nodes
     
-    return None  # No path found within max_iterations
-
-# Example usage: plan a path from (0, 0) to (10, 10)
-if __name__ == "__main__":
-    start = np.array([0, 0])
-    goal = np.array([10, 10])
-    # Define planning bounds: x ∈ [-5, 15] and y ∈ [-5, 15]
-    bounds = (-5, 15, -5, 15)
-    
-    path = rrt(start, goal, bounds)
-    if path is not None:
-        print("RRT found a path:")
-        for state in path:
-            print("Position:", state[0], "Velocity:", state[1])
-    else:
-        print("No path was found.")
+    return None, nodes  # No path found within max_iterations
