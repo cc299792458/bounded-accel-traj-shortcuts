@@ -264,22 +264,15 @@ def plot_trajectory(trajectories, start_pos, end_pos, start_vel, end_vel, vmax, 
 
 # ------------------ Testing and Plotting Code ------------------
 if __name__ == '__main__':
-    np.random.seed(1)  # For reproducibility
+    np.random.seed(42)  # For reproducibility
     
-    # Define sampling ranges for variables (adjust as needed, ensuring positive displacement if required)
-    start_pos_range = (-10, 10)
-    end_pos_range = (-10, 10)
-    start_vel_range = (-2, 2)
-    end_vel_range = (-2, 2)
-    vmax_range = (1, 3)
-    amax_range = (1, 3)
-    
-    start_pos = np.random.uniform(*start_pos_range)
-    end_pos = np.random.uniform(*end_pos_range)
-    start_vel = np.random.uniform(*start_vel_range)
-    end_vel = np.random.uniform(*end_vel_range)
-    vmax = np.random.uniform(*vmax_range)
-    amax = np.random.uniform(*amax_range)
+    # Sample random boundary conditions
+    start_pos = np.random.uniform(-10, 10)
+    end_pos = np.random.uniform(-10, 10)
+    start_vel = np.random.uniform(-2, 2)
+    end_vel = np.random.uniform(-2, 2)
+    vmax = np.random.uniform(1, 3)
+    amax = np.random.uniform(1, 3)
 
     # Examples
     # vmax, amax = np.array([1.0]), np.array([1.0])
