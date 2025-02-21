@@ -432,7 +432,7 @@ class Smoother:
                 return None
             return np.array(t_p1 + t_l + t_p2)
 
-        # Class P-L+P+
+        # Class P-L-P+
         def compute_p_minus_l_plus_p_plus():
             t_p1 = (vmax + v1) / amax
             t_p2 = (vmax + v2) / amax

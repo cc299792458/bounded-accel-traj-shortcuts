@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
-def univariate_time_optimal_trajectories(start_pos, end_pos, start_vel, end_vel, vmax, amax):
+def univariate_time_optimal_interpolants(start_pos, end_pos, start_vel, end_vel, vmax, amax):
     """
     Compute the execution times for all trajectory classes for univariate motion,
     and return the optimal trajectory.
@@ -19,7 +19,7 @@ def univariate_time_optimal_trajectories(start_pos, end_pos, start_vel, end_vel,
          'P+P-'  : Accelerate then decelerate.
          'P-P+'  : Decelerate then accelerate.
          'P+L+P-': Accelerate to vmax, cruise, then decelerate.
-         'P-L+P+': Decelerate to -vmax, cruise, then accelerate.
+         'P-L-P+': Decelerate to -vmax, cruise, then accelerate.
     - optimal_label: The label of the trajectory with minimal execution time (if any valid trajectory exists).
     - optimal_time: The minimal execution time among valid trajectories.
     """
@@ -62,7 +62,7 @@ def univariate_time_optimal_trajectories(start_pos, end_pos, start_vel, end_vel,
             return None
         return t_p1 + t_l + t_p2
 
-    # Trajectory class P-L+P+
+    # Trajectory class P-L-P+
     def compute_p_minus_l_plus_p_plus():
         t_p1 = (vmax + v1) / amax
         t_p2 = (vmax + v2) / amax
@@ -75,7 +75,7 @@ def univariate_time_optimal_trajectories(start_pos, end_pos, start_vel, end_vel,
     trajectories['P+P-'] = compute_p_plus_p_minus()
     trajectories['P-P+'] = compute_p_minus_p_plus()
     trajectories['P+L+P-'] = compute_p_plus_l_plus_p_minus()
-    trajectories['P-L+P+'] = compute_p_minus_l_plus_p_plus()
+    trajectories['P-L-P+'] = compute_p_minus_l_plus_p_plus()
 
     # Determine the optimal (minimal) execution time among valid trajectories
     valid_trajs = {k: v for k, v in trajectories.items() if v is not None}
@@ -176,12 +176,12 @@ def plot_trajectory(trajectories, start_pos, end_pos, start_vel, end_vel, vmax, 
             total_time = t_p1 + t_l + t_p2
             return t_total, pos_total, vel_total, total_time
         
-        elif candidate_label == 'P-L+P+':
+        elif candidate_label == 'P-L-P+':
             t_p1 = (vmax + start_vel) / amax
             t_p2 = (vmax + end_vel) / amax
             t_l = (end_vel**2 + start_vel**2 - 2*vmax**2) / (2*vmax*amax) - (end_pos - start_pos) / vmax
             if t_p1 < 0 or t_p2 < 0 or t_l < 0:
-                raise ValueError("Invalid time segments for P-L+P+ trajectory")
+                raise ValueError("Invalid time segments for P-L-P+ trajectory")
             t1 = np.linspace(0, t_p1, num_points)
             pos1 = start_pos + start_vel*t1 - 0.5*amax*t1**2
             vel1 = start_vel - amax*t1
@@ -205,7 +205,7 @@ def plot_trajectory(trajectories, start_pos, end_pos, start_vel, end_vel, vmax, 
         else:
             raise ValueError("Unknown trajectory type")
     
-    candidate_order = ['P+P-', 'P-P+', 'P+L+P-', 'P-L+P+']
+    candidate_order = ['P+P-', 'P-P+', 'P+L+P-', 'P-L-P+']
     
     # Create a figure with a larger size and more space between subplots.
     fig = plt.figure(figsize=(16, 10))  # Widen the figure, for example
@@ -232,7 +232,7 @@ def plot_trajectory(trajectories, start_pos, end_pos, start_vel, end_vel, vmax, 
                 # Top subplot: position vs time
                 ax_pos.plot(t_total, pos_total, 'b-')
                 ax_pos.set_ylabel('Position')
-                title_text = f"{candidate} (Total Time: {total_time:.2f} s)"
+                title_text = f"{candidate} (Total Time: {float(total_time):.2f} s)"
                 ax_pos.set_title(title_text)
                 
                 # Bottom subplot: velocity vs time
@@ -264,15 +264,15 @@ def plot_trajectory(trajectories, start_pos, end_pos, start_vel, end_vel, vmax, 
 
 # ------------------ Testing and Plotting Code ------------------
 if __name__ == '__main__':
-    np.random.seed(42)  # For reproducibility
+    np.random.seed(1)  # For reproducibility
     
     # Define sampling ranges for variables (adjust as needed, ensuring positive displacement if required)
     start_pos_range = (-10, 10)
     end_pos_range = (-10, 10)
     start_vel_range = (-2, 2)
     end_vel_range = (-2, 2)
-    vmax_range = (1, 5)
-    amax_range = (0.5, 3)
+    vmax_range = (1, 3)
+    amax_range = (1, 3)
     
     start_pos = np.random.uniform(*start_pos_range)
     end_pos = np.random.uniform(*end_pos_range)
@@ -280,9 +280,30 @@ if __name__ == '__main__':
     end_vel = np.random.uniform(*end_vel_range)
     vmax = np.random.uniform(*vmax_range)
     amax = np.random.uniform(*amax_range)
+
+    # Examples
+    # vmax, amax = np.array([1.0]), np.array([1.0])
+    # Examples 1, 2, 3, 4: Corresponding to Figure 5 in the original paper
+    # start_pos, end_pos, start_vel, end_vel = np.array([0.0]), np.array([1.0]), np.array([0.0]), np.array([0.0])
+    # start_pos, end_pos, start_vel, end_vel = np.array([0.0]), np.array([3.0]), np.array([0.0]), np.array([0.0]) 
+    # start_pos, end_pos, start_vel, end_vel = np.array([0.0]), np.array([0.0]), np.array([1.0]), np.array([0.0]) 
+    # start_pos, end_pos, start_vel, end_vel = np.array([0.0]), np.array([-0.5]), np.array([1.0]), np.array([1.0]) 
     
+    # More examples
+    # Example 5: This example illustrates that for the P-L+P+ trajectory, just before accelerating with amax, 
+    # the velocity must have reached -vmax
+    # start_pos, end_pos, start_vel, end_vel = np.array([0.0]), np.array([0.5]), np.array([0.0]), np.array([1.0]) 
+
+    # Example 6, 7, 8, 9:
+    # Examples 6 and 9 demonstrate a scenario where, if the distance is insufficient for acceleration, 
+    # it must first decelerate backward before accelerating forward
+    # start_pos, end_pos, start_vel, end_vel = np.array([0.0]), np.array([0.4]), np.array([0.0]), np.array([1.0]) 
+    # start_pos, end_pos, start_vel, end_vel = np.array([0.0]), np.array([0.6]), np.array([0.0]), np.array([1.0]) 
+    # start_pos, end_pos, start_vel, end_vel = np.array([0.0]), np.array([0.5]), np.array([0.0]), np.array([0.8])
+    # start_pos, end_pos, start_vel, end_vel = np.array([0.0]), np.array([0.5]), np.array([0.0]), np.array([1.2])
+
     # Compute candidate trajectories and select the optimal one using the previously defined function.
-    trajectories, optimal_label, optimal_time = univariate_time_optimal_trajectories(
+    trajectories, optimal_label, optimal_time = univariate_time_optimal_interpolants(
         start_pos, end_pos, start_vel, end_vel, vmax, amax
     )
     
