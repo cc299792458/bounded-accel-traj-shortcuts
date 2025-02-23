@@ -25,6 +25,9 @@ def univariate_time_optimal_interpolants(start_pos, end_pos, start_vel, end_vel,
     - optimal_label: The label of the trajectory with minimal execution time (if any valid trajectory exists).
     - optimal_time: The minimal execution time among valid trajectories.
     """
+    assert vmax > 1e-6, "vmax must be greater than 1e-6 for numerical stability."
+    assert amax > 1e-6, "amax must be greater than 1e-6 for numerical stability."
+
     x1, x2, v1, v2 = start_pos, end_pos, start_vel, end_vel
     
     # Trajectory class P+P-

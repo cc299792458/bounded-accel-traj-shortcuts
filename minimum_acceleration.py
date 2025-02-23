@@ -2,7 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
-def minimum_acceleration_interpolants(start_pos, end_pos, start_vel, end_vel, vmax, T, rated_amax, 
+from solve_quadratic import solve_quadratic
+
+def minimum_acceleration_interpolants(start_pos, end_pos, start_vel, end_vel, vmax, T, amax, 
                                       t_margin=1e-5, a_margin=1e-6):
     """
     Compute the minimum-acceleration trajectory for a fixed end time T.
@@ -13,13 +15,6 @@ def minimum_acceleration_interpolants(start_pos, end_pos, start_vel, end_vel, vm
     - selected_primitive: Name of the candidate with minimal acceleration.
     """
     x1, x2, v1, v2 = start_pos, end_pos, start_vel, end_vel
-
-    def solve_quadratic(a, b, c):
-        discriminant = b**2 - 4*a*c
-        if discriminant < 0:
-            return []
-        sqrt_disc = np.sqrt(discriminant)
-        return [(-b + sqrt_disc)/(2*a), (-b - sqrt_disc)/(2*a)]
     
     # Candidate: P+P-
     def compute_p_plus_p_minus():
@@ -91,8 +86,8 @@ def minimum_acceleration_interpolants(start_pos, end_pos, start_vel, end_vel, vm
     a_min = valid_results[selected_primitive]
 
     # Check rated acceleration limit
-    if a_min <= rated_amax + a_margin:
-        a_min = np.clip(a_min, 0, rated_amax)
+    if a_min <= amax + a_margin:
+        a_min = np.clip(a_min, 0, amax)
     else:
         raise ValueError("Required acceleration exceeds the rated maximum.")
     
@@ -208,7 +203,7 @@ def plot_trajectory(results, start_pos, end_pos, start_vel, end_vel, vmax, T, nu
                 # Plot position
                 ax_pos.plot(t_total, pos_total, 'b-')
                 ax_pos.set_ylabel('Position')
-                ax_pos.set_title(f"{candidate} (a = {a_candidate:.3f})")
+                ax_pos.set_title(f"{candidate} (Min Accel: {a_candidate:.3f}m/s^2)")
 
                 # Plot velocity
                 ax_vel.plot(t_total, vel_total, 'r-')
@@ -220,11 +215,7 @@ def plot_trajectory(results, start_pos, end_pos, start_vel, end_vel, vmax, T, nu
                 ax_vel.text(0.5, 0.5, f"Error: {str(e)}", ha='center', va='center')
                 ax_vel.set_title(candidate)
         else:
-            # No solution for this candidate
-            ax_pos.text(0.5, 0.5, "No solution", ha='center', va='center')
-            ax_pos.set_title(candidate)
-            ax_vel.text(0.5, 0.5, "No solution", ha='center', va='center')
-            ax_vel.set_title(candidate)
+            ax_pos.set_title(f"{candidate} (None)")
 
         # Common settings
         ax_pos.set_xlabel('Time [s]')
