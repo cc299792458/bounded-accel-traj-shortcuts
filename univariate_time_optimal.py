@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
+from solve_quadratic import solve_quadratic
+
 def univariate_time_optimal_interpolants(start_pos, end_pos, start_vel, end_vel, vmax, amax):
     """
     Compute the execution times for all trajectory classes for univariate motion,
@@ -24,14 +26,6 @@ def univariate_time_optimal_interpolants(start_pos, end_pos, start_vel, end_vel,
     - optimal_time: The minimal execution time among valid trajectories.
     """
     x1, x2, v1, v2 = start_pos, end_pos, start_vel, end_vel
-
-    def solve_quadratic(a, b, c):
-            """Solve quadratic equation ax^2 + bx + c = 0 and return real solutions."""
-            discriminant = b**2 - 4 * a * c
-            if discriminant < 0:
-                return []
-            sqrt_discriminant = np.sqrt(discriminant)
-            return [(-b + sqrt_discriminant) / (2 * a), (-b - sqrt_discriminant) / (2 * a)]
     
     # Trajectory class P+P-
     def compute_p_plus_p_minus():
