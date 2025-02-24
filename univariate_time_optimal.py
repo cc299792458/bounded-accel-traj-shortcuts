@@ -163,7 +163,7 @@ if __name__ == '__main__':
     end_pos = np.random.uniform(-10, 10)
     start_vel = np.random.uniform(-2, 2)
     end_vel = np.random.uniform(-2, 2)
-    vmax = np.random.uniform(1, 3)
+    vmax = np.random.uniform(2, 4)
     amax = np.random.uniform(1, 3)
 
     # Examples

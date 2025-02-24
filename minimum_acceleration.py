@@ -5,8 +5,7 @@ import matplotlib.gridspec as gridspec
 from solve_quadratic import solve_quadratic
 from get_motion_state import get_motion_state_at_local_t
 
-def minimum_acceleration_interpolants(start_pos, end_pos, start_vel, end_vel, vmax, T, a_threshold, 
-                                      t_margin=1e-5, a_margin=1e-6):
+def minimum_acceleration_interpolants(start_pos, end_pos, start_vel, end_vel, vmax, T, a_threshold):
     """
     Compute the minimum-acceleration trajectory for a fixed end time T.
     
@@ -32,7 +31,7 @@ def minimum_acceleration_interpolants(start_pos, end_pos, start_vel, end_vel, vm
                 continue
             t_s = 0.5 * (T + (v2 - v1) / a)
             # Check feasibility and velocity limit at the switching time.
-            if 0 < t_s < T + t_margin and abs(v1 + a * t_s) <= vmax:
+            if 0 <= t_s <= T and abs(v1 + a * t_s) <= vmax: # NOTE: t_margin has been removed here.
                 valid_candidates.append((a, t_s, None))
         return min(valid_candidates, key=lambda x: x[0]) if valid_candidates else None
 
@@ -45,7 +44,7 @@ def minimum_acceleration_interpolants(start_pos, end_pos, start_vel, end_vel, vm
             if a <= 0:
                 continue
             t_s = 0.5 * (T + (v1 - v2) / a)
-            if 0 < t_s < T + t_margin and abs(v1 - a * t_s) <= vmax:
+            if 0 <= t_s <= T and abs(v1 - a * t_s) <= vmax: # NOTE: t_margin has been removed here.
                 valid_candidates.append((a, t_s, None))
         return min(valid_candidates, key=lambda x: x[0]) if valid_candidates else None
 
@@ -86,13 +85,14 @@ def minimum_acceleration_interpolants(start_pos, end_pos, start_vel, end_vel, vm
         return None
 
     optimal_label = min(valid_trajectories, key=lambda k: valid_trajectories[k][0])
-    a_min = valid_trajectories[optimal_label][0]
+    amin = valid_trajectories[optimal_label][0]
     
-    if a_min <= a_threshold + a_margin:
+    if amin * 0.99 <= a_threshold:
         # Optionally clip acceleration to a_threshold if within the margin.
-        a_min = np.clip(a_min, 0, a_threshold)
+        amin = np.clip(amin, 0, a_threshold)
+        trajectories[optimal_label] = (amin, trajectories[optimal_label][1], trajectories[optimal_label][2])
     else:
-        raise ValueError("Required acceleration exceeds the rated maximum.")
+        raise ValueError("Required acceleration exceeds the a threshold.")
     
     return trajectories, optimal_label
 
@@ -123,14 +123,14 @@ def plot_trajectory(trajectories, start_pos, end_pos, start_vel, end_vel, vmax, 
         ax_pos = plt.Subplot(fig, inner[0])
         ax_vel = plt.Subplot(fig, inner[1])
         
-        candidate_result = trajectories.get(candidate, None)
-        if candidate_result is not None:
+        if trajectories.get(candidate) is not None:
             # Unpack the candidate solution: acceleration, switch_time1, and switch_time2
-            acc, sw1, sw2 = candidate_result
+            acc, switch_time1, switch_time2 = trajectories[candidate]
             # Sample time from 0 to T
             t_samples = np.linspace(0, T, num_points)
             # Compute states using get_motion_state_at_local_t for each time sample
-            states = [get_motion_state_at_local_t(t, candidate, start_pos, start_vel, end_vel, vmax, acc, sw1, sw2, T)
+            states = [get_motion_state_at_local_t(t, candidate, start_pos, start_vel, end_vel, 
+                                                  vmax, acc, switch_time1, switch_time2, T)
                       for t in t_samples]
             pos_samples = np.array([s[0] for s in states])
             vel_samples = np.array([s[1] for s in states])
@@ -139,7 +139,6 @@ def plot_trajectory(trajectories, start_pos, end_pos, start_vel, end_vel, vmax, 
             ax_vel.plot(t_samples, vel_samples, 'r-')
             ax_pos.set_title(f"{candidate} (Min Accel: {list(acc)[0]:.3f} m/s^2)")
         else:
-            ax_pos.text(0.5, 0.5, "No solution", ha='center', va='center')
             ax_pos.set_title(f"{candidate} (None)")
         
         # Set common labels and grid
@@ -163,7 +162,7 @@ if __name__ == '__main__':
     end_pos = np.random.uniform(-10, 10)
     start_vel = np.random.uniform(-2, 2)
     end_vel = np.random.uniform(-2, 2)
-    vmax = np.random.uniform(1, 3)
+    vmax = np.random.uniform(2, 4)
     T = np.random.uniform(1, 10)
 
     # Examples
@@ -177,7 +176,7 @@ if __name__ == '__main__':
     # More examples
     # Example 5: This example illustrates that for the P-L+P+ trajectory, just before accelerating with amax, 
     # the velocity must have reached -vmax
-    # start_pos, end_pos, start_vel, end_vel, T = np.array([0.0]), np.array([0.5]), np.array([0.0]), np.array([1.0]), np.array([1.0]) 
+    start_pos, end_pos, start_vel, end_vel, T = np.array([0.0]), np.array([0.5]), np.array([0.0]), np.array([1.0]), np.array([1.0]) 
 
     # Example 6, 7, 8, 9:
     # Examples 6 and 9 demonstrate a scenario where, if the distance is insufficient for acceleration, 
