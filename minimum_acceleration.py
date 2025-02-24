@@ -80,7 +80,7 @@ def minimum_acceleration_interpolants(start_pos, end_pos, start_vel, end_vel, vm
     valid_trajectories = {k: v for k, v in trajectories.items() if v is not None}
     if not valid_trajectories:
         # NOTE: This problem is possible to have no solution.
-        return None
+        return None, None
 
     optimal_label = min(valid_trajectories, key=lambda k: valid_trajectories[k][0])
     amin = valid_trajectories[optimal_label][0]
@@ -90,9 +90,9 @@ def minimum_acceleration_interpolants(start_pos, end_pos, start_vel, end_vel, vm
         amin = np.clip(amin, 0, a_threshold)
         trajectories[optimal_label] = (amin, trajectories[optimal_label][1], trajectories[optimal_label][2])
     else:
-        return None
-        raise ValueError("Required acceleration exceeds the a threshold.")
-    
+        # NOTE: The minimum required acceleration can exceed the maximum available acceleration.
+        return None, None
+        
     return trajectories, optimal_label
 
 # ------------------ Testing and Main Code ------------------
@@ -136,4 +136,4 @@ if __name__ == '__main__':
     )
     
     # Plot the trajectory based on the selected candidate.
-    plot_trajectory(trajectories, start_pos, end_pos, start_vel, end_vel, vmax, T)
+    plot_trajectory(trajectories, start_pos, end_pos, start_vel, end_vel, vmax, T=T, solution_type='min_accel')

@@ -45,7 +45,7 @@ def plot_trajectory(trajectories, start_pos, end_pos, start_vel, end_vel, vmax, 
                 states = [get_motion_state_at_local_t(t, candidate, start_pos, start_vel, end_vel,
                                                         vmax, amax, switch_time1, switch_time2, total_time)
                           for t in t_samples]
-                title_text = f"{candidate} (Total Time: {list(total_time)[0]:.2f} s)"
+                title_text = f"{candidate} (Total Time: {float(total_time):.2f} s)"
             elif solution_type == 'min_accel':
                 # Candidate solution: (acceleration, switch_time1, switch_time2)
                 acc, switch_time1, switch_time2 = trajectories[candidate]
@@ -54,7 +54,7 @@ def plot_trajectory(trajectories, start_pos, end_pos, start_vel, end_vel, vmax, 
                 states = [get_motion_state_at_local_t(t, candidate, start_pos, start_vel, end_vel,
                                                         vmax, acc, switch_time1, switch_time2, T)
                           for t in t_samples]
-                title_text = f"{candidate} (Min Accel: {list(acc)[0]:.3f} m/s^2)"
+                title_text = f"{candidate} (Min Accel: {float(acc):.3f} m/s^2)"
             else:
                 raise ValueError("Unknown solution_type. Use 'time_optimal' or 'min_accel'.")
             
