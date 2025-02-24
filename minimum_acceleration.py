@@ -111,7 +111,7 @@ if __name__ == '__main__':
 
     # Examples
     # Examples 1, 2, 3, 4: Corresponding to Figure 5 in the original paper
-    # vmax = np.array([1.0])
+    vmax = np.array([1.0])
     # start_pos, end_pos, start_vel, end_vel, T = np.array([0.0]), np.array([1.0]), np.array([0.0]), np.array([0.0]), np.array([2.0])
     # start_pos, end_pos, start_vel, end_vel, T = np.array([0.0]), np.array([3.0]), np.array([0.0]), np.array([0.0]), np.array([4.0])
     # start_pos, end_pos, start_vel, end_vel, T = np.array([0.0]), np.array([0.0]), np.array([1.0]), np.array([0.0]), np.array([2.41])
