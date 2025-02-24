@@ -1,9 +1,7 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 
+from plot import plot_trajectory
 from solve_quadratic import solve_quadratic
-from get_motion_state import get_motion_state_at_local_t
 
 def univariate_time_optimal_interpolants(start_pos, end_pos, start_vel, end_vel, vmax, amax):
     """
@@ -97,63 +95,6 @@ def univariate_time_optimal_interpolants(start_pos, end_pos, start_vel, end_vel,
 
     return trajectories, optimal_label
 
-def plot_trajectory(trajectories, start_pos, end_pos, start_vel, end_vel, vmax, amax, num_points=100):
-    """
-    Plot candidate trajectories using get_motion_state_at_local_t.
-    The figure is divided into 4 outer subplots (one per candidate trajectory),
-    and each outer subplot is subdivided into 2 inner subplots:
-    the top for position vs. time and the bottom for velocity vs. time.
-    
-    Inputs:
-    - trajectories: dict mapping candidate labels to (total_time, switch_time1, switch_time2),
-                    or None if the candidate trajectory is invalid.
-    - start_pos, end_pos: initial and final positions.
-    - start_vel, end_vel: initial and final velocities.
-    - vmax, amax: maximum velocity and acceleration.
-    - num_points: number of sampling points for plotting.
-    """
-    candidate_order = ['P+P-', 'P-P+', 'P+L+P-', 'P-L-P+']
-    fig = plt.figure(figsize=(16, 10))
-    outer = gridspec.GridSpec(2, 2, wspace=0.4, hspace=0.4)
-    
-    for i, candidate in enumerate(candidate_order):
-        # Create two inner subplots within the outer cell:
-        inner = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=outer[i], hspace=0.4)
-        ax_pos = plt.Subplot(fig, inner[0])
-        ax_vel = plt.Subplot(fig, inner[1])
-        
-        # Check if candidate trajectory is valid (i.e., has computed times)
-        if trajectories.get(candidate) is not None:
-            total_time, switch_time1, switch_time2 = trajectories[candidate]
-            # Sample time points from 0 to total_time
-            t_samples = np.linspace(0, total_time, num_points)
-            # Compute states (position, velocity, acceleration) at each time using get_motion_state_at_local_t
-            states = [get_motion_state_at_local_t(t, candidate, start_pos, start_vel, end_vel,
-                                                    vmax, amax, switch_time1, switch_time2, total_time)
-                      for t in t_samples]
-            pos_samples = np.array([s[0] for s in states])
-            vel_samples = np.array([s[1] for s in states])
-            
-            ax_pos.plot(t_samples, pos_samples, 'b-')
-            ax_vel.plot(t_samples, vel_samples, 'r-')
-            ax_pos.set_title(f"{candidate} (Total Time: {list(total_time)[0]:.2f} s)")
-        else:
-            # If candidate trajectory is invalid, display a message.
-            ax_pos.set_title(f"{candidate} (None)")
-        
-        # Set common labels and grid for both subplots
-        for ax in (ax_pos, ax_vel):
-            ax.set_xlabel('Time [s]')
-            ax.grid(True)
-        ax_pos.set_ylabel('Position')
-        ax_vel.set_ylabel('Velocity')
-        
-        # Add the subplots to the figure
-        fig.add_subplot(ax_pos)
-        fig.add_subplot(ax_vel)
-    
-    plt.show()
-
 # ------------------ Testing and Plotting Code ------------------
 if __name__ == '__main__':
     np.random.seed(42)  # For reproducibility
@@ -177,7 +118,7 @@ if __name__ == '__main__':
     # More examples
     # Example 5: This example illustrates that for the P-L+P+ trajectory, just before accelerating with amax, 
     # the velocity must have reached -vmax
-    # start_pos, end_pos, start_vel, end_vel = np.array([0.0]), np.array([0.5]), np.array([0.0]), np.array([1.0]) 
+    start_pos, end_pos, start_vel, end_vel = np.array([0.0]), np.array([0.5]), np.array([0.0]), np.array([1.0]) 
 
     # Example 6, 7, 8, 9:
     # Examples 6 and 9 demonstrate a scenario where, if the distance is insufficient for acceleration, 

@@ -1,9 +1,7 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 
+from plot import plot_trajectory
 from solve_quadratic import solve_quadratic
-from get_motion_state import get_motion_state_at_local_t
 
 def minimum_acceleration_interpolants(start_pos, end_pos, start_vel, end_vel, vmax, T, a_threshold):
     """
@@ -87,76 +85,22 @@ def minimum_acceleration_interpolants(start_pos, end_pos, start_vel, end_vel, vm
     optimal_label = min(valid_trajectories, key=lambda k: valid_trajectories[k][0])
     amin = valid_trajectories[optimal_label][0]
     
-    if amin * 0.99 <= a_threshold:
+    if amin * 0.999 <= a_threshold:
         # Optionally clip acceleration to a_threshold if within the margin.
         amin = np.clip(amin, 0, a_threshold)
         trajectories[optimal_label] = (amin, trajectories[optimal_label][1], trajectories[optimal_label][2])
     else:
+        return None
         raise ValueError("Required acceleration exceeds the a threshold.")
     
     return trajectories, optimal_label
-
-def plot_trajectory(trajectories, start_pos, end_pos, start_vel, end_vel, vmax, T, num_points=100):
-    """
-    Plot all four candidate motion primitives in a 2x2 grid.
-    Each candidate subplot has two rows:
-      - Top: position vs. time
-      - Bottom: velocity vs. time.
-      
-    Uses get_motion_state_at_local_t to compute the state at each time sample.
-    
-    Inputs:
-      - trajectories: dict mapping candidate labels to a tuple 
-                 (acceleration, switch_time1, switch_time2) if valid, or None if invalid.
-      - start_pos, end_pos: initial and final positions.
-      - start_vel, end_vel: initial and final velocities.
-      - vmax: maximum velocity.
-      - T: total trajectory time.
-      - num_points: number of samples for plotting.
-    """
-    candidate_order = ['P+P-', 'P-P+', 'P+L+P-', 'P-L-P+']
-    fig = plt.figure(figsize=(16, 10))
-    outer = gridspec.GridSpec(2, 2, wspace=0.4, hspace=0.4)
-    
-    for i, candidate in enumerate(candidate_order):
-        inner = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=outer[i], hspace=0.4)
-        ax_pos = plt.Subplot(fig, inner[0])
-        ax_vel = plt.Subplot(fig, inner[1])
-        
-        if trajectories.get(candidate) is not None:
-            # Unpack the candidate solution: acceleration, switch_time1, and switch_time2
-            acc, switch_time1, switch_time2 = trajectories[candidate]
-            # Sample time from 0 to T
-            t_samples = np.linspace(0, T, num_points)
-            # Compute states using get_motion_state_at_local_t for each time sample
-            states = [get_motion_state_at_local_t(t, candidate, start_pos, start_vel, end_vel, 
-                                                  vmax, acc, switch_time1, switch_time2, T)
-                      for t in t_samples]
-            pos_samples = np.array([s[0] for s in states])
-            vel_samples = np.array([s[1] for s in states])
-            
-            ax_pos.plot(t_samples, pos_samples, 'b-')
-            ax_vel.plot(t_samples, vel_samples, 'r-')
-            ax_pos.set_title(f"{candidate} (Min Accel: {list(acc)[0]:.3f} m/s^2)")
-        else:
-            ax_pos.set_title(f"{candidate} (None)")
-        
-        # Set common labels and grid
-        for ax in (ax_pos, ax_vel):
-            ax.set_xlabel('Time [s]')
-            ax.grid(True)
-        ax_pos.set_ylabel('Position')
-        ax_vel.set_ylabel('Velocity')
-        
-        fig.add_subplot(ax_pos)
-        fig.add_subplot(ax_vel)
-    
-    plt.show()
 
 # ------------------ Testing and Main Code ------------------
 if __name__ == '__main__':
     np.random.seed(42)
     
+    a_threshold = np.array([100.0])
+
     # Generate random boundary conditions.
     start_pos = np.random.uniform(-10, 10)
     end_pos = np.random.uniform(-10, 10)
@@ -167,7 +111,7 @@ if __name__ == '__main__':
 
     # Examples
     # Examples 1, 2, 3, 4: Corresponding to Figure 5 in the original paper
-    vmax, a_threshold = np.array([1.0]), np.array([100.0])
+    # vmax = np.array([1.0])
     # start_pos, end_pos, start_vel, end_vel, T = np.array([0.0]), np.array([1.0]), np.array([0.0]), np.array([0.0]), np.array([2.0])
     # start_pos, end_pos, start_vel, end_vel, T = np.array([0.0]), np.array([3.0]), np.array([0.0]), np.array([0.0]), np.array([4.0])
     # start_pos, end_pos, start_vel, end_vel, T = np.array([0.0]), np.array([0.0]), np.array([1.0]), np.array([0.0]), np.array([2.41])
