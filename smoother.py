@@ -89,9 +89,7 @@ class Smoother:
     
     def compute_traj_segment(self, start_state, end_state):
         traj_segment_time = self.compute_traj_segment_time(start_state, end_state)
-        traj_segment_param = self.compute_traj_segment_param(
-            start_state, end_state, traj_segment_time
-        )
+        traj_segment_param = self.compute_traj_segment_param(start_state, end_state, traj_segment_time)
         
         return traj_segment_time, traj_segment_param
 
