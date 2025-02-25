@@ -1,3 +1,4 @@
+import os
 import time
 import random
 import numpy as np
@@ -93,7 +94,7 @@ class Scene:
         pos = state[0]
         return self._is_point_collision_free(pos)
     
-    def plot_scene(self, tree=None, path=None, ax=None):
+    def plot_scene(self, tree=None, path=None, ax=None, save_image=False, image_path="rrt.png"):
         """
         Plot the scene, including obstacles, start/goal points, the RRT tree, and the found path.
         Different obstacle types are shown with different colors.
@@ -105,12 +106,12 @@ class Scene:
             if obs[0] == "ellipse":
                 _, center, rx, ry = obs
                 ellipse = Ellipse(xy=center, width=2*rx, height=2*ry,
-                                  edgecolor='r', facecolor='gray', alpha=0.5)
+                                edgecolor='r', facecolor='gray', alpha=0.5)
                 ax.add_patch(ellipse)
             elif obs[0] == "rectangle":
                 _, center, width, height = obs
                 rect = Rectangle((center[0]-width/2, center[1]-height/2), width, height,
-                                 edgecolor='b', facecolor='lightblue', alpha=0.5)
+                                edgecolor='b', facecolor='lightblue', alpha=0.5)
                 ax.add_patch(rect)
         # Plot start and goal points
         ax.plot(self.start[0], self.start[1], 'go', markersize=10, label='Start')
@@ -133,12 +134,18 @@ class Scene:
         ax.set_title("Scene with Random Obstacles and RRT")
         ax.set_xlabel("X")
         ax.set_ylabel("Y")
-        ax.legend()
+        ax.legend(loc="lower left")
+        
+        # Save image if requested
+        if save_image:
+            fig.savefig(image_path)
+            print(f"Scene image saved to {image_path}")
+        
         return ax
 
 # Example usage (assuming rrt and Smoother modules are available)
 if __name__ == "__main__":
-    seed = 1000
+    seed = 42
     if seed is not None:
         random.seed(seed)
         np.random.seed(seed)
@@ -156,11 +163,11 @@ if __name__ == "__main__":
     else:
         print("No path was found.")
     
-    # ax = scene.plot_scene(tree=tree, path=path)
-    # plt.show()
+    ax = scene.plot_scene(tree=tree, path=path, save_image=True)
+    plt.show()
     
     # Smooth the path (the Smoother class must be implemented elsewhere)
     vmax, amax = np.array([1.0, 1.0]), np.array([1.0, 1.0])
     smoother = Smoother(path=path, vmax=vmax, amax=amax, collision_checker=scene.collision_checker, obstacles=scene.obstacles)
-    smoother.smooth_path(plot_traj=True)
+    smoother.smooth_path(plot_traj=True, save_gif=True)
     time.sleep(5.0)

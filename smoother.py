@@ -3,6 +3,7 @@ This implementation is based on the method presented in the paper:
 "Fast Smoothing of Manipulator Trajectories using Optimal Bounded-Acceleration Shortcuts"
 """
 
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -41,7 +42,7 @@ class Smoother:
         self.obstacles = obstacles
         self.total_time = []
 
-    def smooth_path(self, plot_traj=False):
+    def smooth_path(self, plot_traj=False, save_gif=False, save_path="smoothing_frames"):
         """
         Smooth the traj using time-optimal segments and shortcuts.
 
@@ -61,16 +62,17 @@ class Smoother:
             shortcut_traj_time, shortcut_traj_param = self.compute_traj_segment(shortcut_start, shortcut_end)
             if plot_traj:
                 self.plot_traj(iteration, shortcut_start=shortcut_start, shortcut_end=shortcut_end, 
-                                   candidate_shortcut_time=shortcut_traj_time, candidate_shortcut_param=shortcut_traj_param)
+                                   candidate_shortcut_time=shortcut_traj_time, candidate_shortcut_param=shortcut_traj_param,
+                                   save_gif=save_gif, save_path=save_path)
             # Only update if the traj exists
             if shortcut_traj_param is not None:
                 # Plot again if update segment data successfully
                 if self.update_segment_data(shortcut_start, shortcut_end, t1, t2, shortcut_traj_time, shortcut_traj_param):
                     if plot_traj:
-                        self.plot_traj(iteration, shortcut_start=shortcut_start, shortcut_end=shortcut_end)
+                        self.plot_traj(iteration, shortcut_start=shortcut_start, shortcut_end=shortcut_end, save_gif=save_gif, save_path=save_path)
             # Plot the final trajectory
             if plot_traj:
-                self.plot_traj(iteration, shortcut_start=shortcut_start, shortcut_end=shortcut_end) 
+                self.plot_traj(iteration, shortcut_start=shortcut_start, shortcut_end=shortcut_end, save_gif=save_gif, save_path=save_path) 
 
         return self.path, self.traj_segment_times, self.traj_segment_params
     
@@ -296,9 +298,9 @@ class Smoother:
             if not self.collision_checker(state):
                 return False
         return True
-    
+
     def plot_traj(self, iteration: int, shortcut_start: tuple, shortcut_end: tuple, 
-                  candidate_shortcut_time=None, candidate_shortcut_param=None):
+                  candidate_shortcut_time=None, candidate_shortcut_param=None, save_gif=False, save_path="smoothing_frames"):
         """
         Plot the current trajectory of the smoother object in 2D with animation during smoothing.
 
@@ -312,10 +314,9 @@ class Smoother:
             shortcut_end (tuple): A tuple representing the end point of the shortcut (x, y).
             candidate_shortcut_time (float, optional): The time duration for the candidate shortcut to be visualized.
             candidate_shortcut_param (optional): Parameters defining the candidate shortcut, if applicable.
+            save_gif (bool): Whether to save frames for gif.
+            save_path (str): The folder where the frames will be saved.
         """
-        if self.dimension != 2:
-            raise ValueError("This plotting function only supports 2D trajectories.")
-
         # Initialize plot only on the first call
         if not hasattr(self, "_fig"):
             self._fig, self._ax = plt.subplots(figsize=(8, 6))
@@ -346,14 +347,14 @@ class Smoother:
             self._ax.plot(initial_positions[:, 0], initial_positions[:, 1], 'y--', label='Initial traj')
             self._traj_line, = self._ax.plot([], [], '-o', markersize=2, label='Smoothed traj')
 
-            # Plot milestones and shortcut points and optinally candidate shortcut
+            # Plot milestones and shortcut points and optionally candidate shortcut
             self._milestones, = self._ax.plot([], [], 'ro', markersize=8, label='Milestones')
             self._shortcut_points, = self._ax.plot([], [], 'yo', markersize=4, label='Shortcut Points')
             if candidate_shortcut_time is not None and candidate_shortcut_param is not None:
                 self._candidate_shortcut, = self._ax.plot([], [], '-yo', markersize=1, label='Candidate Shortcut')    
 
             # Add legend and iteration text
-            self._ax.legend(loc="upper left")
+            self._ax.legend(loc="lower left")
             self._iteration_text = self._ax.text(0.95, 0.95, "", transform=self._ax.transAxes, 
                                                 fontsize=12, color="blue", ha="right", va="top")
 
@@ -362,7 +363,7 @@ class Smoother:
         positions = np.array([self.get_motion_states_at_global_t(t)[0] for t in times if self.get_motion_states_at_global_t(t) is not None])
         self._traj_line.set_data(positions[:, 0], positions[:, 1])
 
-        # Update milestones and shortcut points and optinally candidate shortcut
+        # Update milestones and shortcut points and optionally candidate shortcut
         initial_positions = np.array([state[0] for state in self.path])
         self._milestones.set_data(initial_positions[:, 0], initial_positions[:, 1])
         self._shortcut_points.set_data([shortcut_start[0][0], shortcut_end[0][0]], [shortcut_start[0][1], shortcut_end[0][1]])
@@ -378,6 +379,15 @@ class Smoother:
         # Update iteration text
         if iteration is not None:
             self._iteration_text.set_text(f"Iteration: {iteration}")
+
+        # Save the frame if requested
+        if save_gif:
+            if not os.path.exists(save_path):
+                os.makedirs(save_path)
+            if not hasattr(self, 'frame_index'):
+                self.frame_index = 0
+            self._fig.savefig(f"{save_path}/frame_{self.frame_index:03d}.png")
+            self.frame_index += 1
 
         # Redraw the plot
         self._fig.canvas.draw()
