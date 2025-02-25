@@ -1,3 +1,4 @@
+import time
 import random
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,10 +16,7 @@ class Scene:
                  num_ellipses=10, num_rectangles=5, 
                  min_axis=0.5, max_axis=1.5, 
                  min_side=0.5, max_side=1.5, 
-                 min_distance=5.0, seed=None):
-        if seed is not None:
-            random.seed(seed)
-            np.random.seed(seed)
+                 min_distance=5.0):
         
         self.bounds = bounds
         self.obstacles = []
@@ -140,7 +138,11 @@ class Scene:
 
 # Example usage (assuming rrt and Smoother modules are available)
 if __name__ == "__main__":
-    scene = Scene(num_ellipses=10, num_rectangles=15, min_distance=5.0, seed=0)
+    seed = 1000
+    if seed is not None:
+        random.seed(seed)
+        np.random.seed(seed)
+    scene = Scene(num_ellipses=10, num_rectangles=15, min_distance=5.0)
     
     print("Scene bounds:", scene.bounds)
     print("Start:", scene.start)
@@ -161,3 +163,4 @@ if __name__ == "__main__":
     vmax, amax = np.array([1.0, 1.0]), np.array([1.0, 1.0])
     smoother = Smoother(path=path, vmax=vmax, amax=amax, collision_checker=scene.collision_checker, obstacles=scene.obstacles)
     smoother.smooth_path(plot_traj=True)
+    time.sleep(5.0)

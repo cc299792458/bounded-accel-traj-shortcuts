@@ -25,4 +25,7 @@ def solve_quadratic(a, b, c):
     else:
         x2 = c/(a*x1)
     
+    x1 = 0 if np.isclose(x1, 0, atol=1e-12) else x1
+    x2 = 0 if np.isclose(x2, 0, atol=1e-12) else x2
+
     return sorted([x1, x2])

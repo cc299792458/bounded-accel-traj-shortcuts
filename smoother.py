@@ -57,16 +57,19 @@ class Smoother:
             t1, t2 = self.select_random_times(total_time)
             shortcut_start = self.get_motion_states_at_global_t(t1)
             shortcut_end = self.get_motion_states_at_global_t(t2)
-            if plot_traj:
-                self.plot_traj(iteration, shortcut_start=shortcut_start, shortcut_end=shortcut_end, obstacles=self.obstacles)
-
             shortcut_traj_time, shortcut_traj_param = self.compute_traj_segment(shortcut_start, shortcut_end)
+            if plot_traj:
+                self.plot_traj(iteration, shortcut_start=shortcut_start, shortcut_end=shortcut_end, 
+                                   candidate_shortcut_time=shortcut_traj_time, candidate_shortcut_param=shortcut_traj_param)
             # Only update if the traj exists
             if shortcut_traj_param is not None:
                 # Plot again if update segment data successfully
                 if self.update_segment_data(shortcut_start, shortcut_end, t1, t2, shortcut_traj_time, shortcut_traj_param):
-                    self.plot_traj(iteration, shortcut_start=shortcut_start, shortcut_end=shortcut_end, obstacles=self.obstacles)
-
+                    if plot_traj:
+                        self.plot_traj(iteration, shortcut_start=shortcut_start, shortcut_end=shortcut_end)
+            # Plot the final trajectory
+            if plot_traj:
+                self.plot_traj(iteration, shortcut_start=shortcut_start, shortcut_end=shortcut_end) 
 
         return self.path, self.traj_segment_times, self.traj_segment_params
     
@@ -177,8 +180,8 @@ class Smoother:
 
             elapsed_time += traj_segment_time
 
-        # If t is beyond the total traj duration
-        raise ValueError
+        # If t is beyond the total traj duration. # NOTE: This could happen at the boundary due to the numerical precision issues
+        return None
 
     def get_motion_states_at_local_t(self, start_state, traj_segment_param, t):
         """
@@ -293,20 +296,24 @@ class Smoother:
                 return False
         return True
     
-    def plot_traj(self, iteration: int, shortcut_start: tuple, shortcut_end: tuple,
-                   obstacles: list[tuple] = None):
+    def plot_traj(self, iteration: int, shortcut_start: tuple, shortcut_end: tuple, 
+                  candidate_shortcut_time=None, candidate_shortcut_param=None):
         """
-        Plot the current traj of the smoother object in 2D with animation during smoothing.
+        Plot the current trajectory of the smoother object in 2D with animation during smoothing.
 
-        This method dynamically updates the traj plot for visualization without creating new windows.
-        Optionally, displays the current iteration number.
+        This method dynamically updates the trajectory plot for visualization, without creating new windows. 
+        It provides a real-time view of the smoothing process. Optionally, it displays the current iteration number 
+        and visualizes shortcut points (including candidate shortcuts) if provided.
 
         Args:
             iteration (int): The current iteration number to display on the plot.
             shortcut_start (tuple): A tuple representing the start point of the shortcut (x, y).
             shortcut_end (tuple): A tuple representing the end point of the shortcut (x, y).
-            obstacles (list of tuple, optional): List of obstacles, where each obstacle is defined as a
-                                                tuple (x, y, width, height). 
+            candidate_shortcut_time (float, optional): The time duration for the candidate shortcut to be visualized.
+            candidate_shortcut_param (optional): Parameters defining the candidate shortcut, if applicable.
+
+        Raises:
+            ValueError: If the dimension of the trajectory is not 2D.
         """
         if self.dimension != 2:
             raise ValueError("This plotting function only supports 2D trajectories.")
@@ -320,10 +327,10 @@ class Smoother:
             self._ax.grid(True)
             self._ax.axis("equal")
 
-            # Add obstacles if provided
-            if obstacles:
+            # Add obstacles if exists
+            if self.obstacles:
                 self._obstacle_label_added = getattr(self, "_obstacle_label_added", False)
-                for obs in obstacles:
+                for obs in self.obstacles:
                     if obs[0] == "ellipse":
                         _, center, rx, ry = obs
                         self._ax.add_patch(Ellipse(xy=center, width=2*rx, height=2*ry,
@@ -341,9 +348,11 @@ class Smoother:
             self._ax.plot(initial_positions[:, 0], initial_positions[:, 1], 'y--', label='Initial traj')
             self._traj_line, = self._ax.plot([], [], '-o', markersize=2, label='Smoothed traj')
 
-            # Plot milestones and shortcut points
+            # Plot milestones and shortcut points and optinally candidate shortcut
             self._milestones, = self._ax.plot([], [], 'ro', markersize=8, label='Milestones')
-            self._shortcut_points, = self._ax.plot([], [], 'yo', markersize=8, label='Shortcut Points')
+            self._shortcut_points, = self._ax.plot([], [], 'yo', markersize=4, label='Shortcut Points')
+            if candidate_shortcut_time is not None and candidate_shortcut_param is not None:
+                self._candidate_shortcut, = self._ax.plot([], [], '-yo', markersize=1, label='Candidate Shortcut')    
 
             # Add legend and iteration text
             self._ax.legend(loc="upper left")
@@ -355,10 +364,18 @@ class Smoother:
         positions = np.array([self.get_motion_states_at_global_t(t)[0] for t in times if self.get_motion_states_at_global_t(t) is not None])
         self._traj_line.set_data(positions[:, 0], positions[:, 1])
 
-        # Update milestones and shortcut points
+        # Update milestones and shortcut points and optinally candidate shortcut
         initial_positions = np.array([state[0] for state in self.path])
         self._milestones.set_data(initial_positions[:, 0], initial_positions[:, 1])
         self._shortcut_points.set_data([shortcut_start[0][0], shortcut_end[0][0]], [shortcut_start[0][1], shortcut_end[0][1]])
+        
+        if candidate_shortcut_time is not None and candidate_shortcut_param is not None:
+            times = np.linspace(0, candidate_shortcut_time, 20)
+            positions = np.array([self.get_motion_states_at_local_t(shortcut_start, candidate_shortcut_param, t)[0] for t in times 
+                                  if self.get_motion_states_at_local_t(shortcut_start, candidate_shortcut_param, t)[0] is not None])
+            self._candidate_shortcut.set_data(positions[:, 0], positions[:, 1])   
+        else:
+            self._candidate_shortcut.set_data([], [])
 
         # Update iteration text
         if iteration is not None:

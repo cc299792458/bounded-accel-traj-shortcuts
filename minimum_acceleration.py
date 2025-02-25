@@ -48,6 +48,8 @@ def minimum_acceleration_interpolants(start_pos, end_pos, start_vel, end_vel, vm
 
     # Candidate: P+L+P-
     def compute_p_plus_l_plus_p_minus():
+        if T * vmax - (x2 - x1) == 0:
+            return (np.array([0.0]), np.array([0.0]), T) if v1 == v2 == vmax else None
         a = (vmax**2 - vmax * (v1 + v2) + 0.5 * (v1**2 + v2**2)) / (T * vmax - (x2 - x1))
         if a <= 0:
             return None
@@ -60,6 +62,8 @@ def minimum_acceleration_interpolants(start_pos, end_pos, start_vel, end_vel, vm
 
     # Candidate: P-L-P+
     def compute_p_minus_l_plus_p_plus():
+        if T * vmax + (x2 - x1) == 0:
+            return (np.array([0.0]), np.array([0.0]), T) if v1 == v2 == -vmax else None
         a = (vmax**2 + vmax * (v1 + v2) + 0.5 * (v1**2 + v2**2)) / (T * vmax + (x2 - x1))
         if a <= 0:
             return None
@@ -129,6 +133,10 @@ if __name__ == '__main__':
     # start_pos, end_pos, start_vel, end_vel, T = np.array([0.0]), np.array([0.6]), np.array([0.0]), np.array([1.0]), np.array([1.1]) 
     # start_pos, end_pos, start_vel, end_vel, T = np.array([0.0]), np.array([0.5]), np.array([0.0]), np.array([0.8]), np.array([1.01])
     # start_pos, end_pos, start_vel, end_vel, T = np.array([0.0]), np.array([0.5]), np.array([0.0]), np.array([1.2]), np.array([2.14])
+
+    # Example 10:
+    # This is a corner case.
+    # start_pos, end_pos, start_vel, end_vel, T = np.array([0.0]), np.array([1.0]), np.array([1.0]), np.array([1.0]), np.array([1.0])
 
     # Compute candidate trajectories, minimal acceleration, and selected candidate.
     trajectories, optimal_label = minimum_acceleration_interpolants(
