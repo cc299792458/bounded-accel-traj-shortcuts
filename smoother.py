@@ -54,17 +54,19 @@ class Smoother:
         for iteration in range(self.max_iterations):
             total_time = np.sum(self.traj_segment_times)
             self.total_time.append(total_time)
-            if plot_traj:
-                self.plot_traj(iteration, obstacles=self.obstacles)
             t1, t2 = self.select_random_times(total_time)
-            start_state = self.get_motion_states_at_global_t(t1)
-            end_state = self.get_motion_states_at_global_t(t2)
+            shortcut_start = self.get_motion_states_at_global_t(t1)
+            shortcut_end = self.get_motion_states_at_global_t(t2)
+            if plot_traj:
+                self.plot_traj(iteration, shortcut_start=shortcut_start, shortcut_end=shortcut_end, obstacles=self.obstacles)
 
-            shortcut_traj_time, shortcut_traj_param = self.compute_traj_segment(start_state, end_state)
+            shortcut_traj_time, shortcut_traj_param = self.compute_traj_segment(shortcut_start, shortcut_end)
             
             # Only update if the traj exists
             if shortcut_traj_param is not None:
-                self.update_segment_data(start_state, end_state, t1, t2, shortcut_traj_time, shortcut_traj_param)
+                self.update_segment_data(shortcut_start, shortcut_end, t1, t2, shortcut_traj_time, shortcut_traj_param)
+                self.plot_traj(iteration, shortcut_start=shortcut_start, shortcut_end=shortcut_end, obstacles=self.obstacles)
+
 
         return self.path, self.traj_segment_times, self.traj_segment_params
     
@@ -291,7 +293,8 @@ class Smoother:
                 return False
         return True
     
-    def plot_traj(self, iteration=None, obstacles=None):
+    def plot_traj(self, iteration: int, shortcut_start: tuple, shortcut_end: tuple,
+                   obstacles: list[tuple] = None):
         """
         Plot the current traj of the smoother object in 2D with animation during smoothing.
 
@@ -299,9 +302,11 @@ class Smoother:
         Optionally, displays the current iteration number.
 
         Args:
-            iteration (int, optional): The current iteration number to display on the plot.
+            iteration (int): The current iteration number to display on the plot.
+            shortcut_start (tuple): A tuple representing the start point of the shortcut (x, y).
+            shortcut_end (tuple): A tuple representing the end point of the shortcut (x, y).
             obstacles (list of tuple, optional): List of obstacles, where each obstacle is defined as a
-                                                tuple (x, y, width, height).
+                                                tuple (x, y, width, height). 
         """
         if self.dimension != 2:
             raise ValueError("This plotting function only supports 2D trajectories.")
@@ -316,73 +321,49 @@ class Smoother:
             self._ax.axis("equal")
 
             # Add obstacles if provided
-            if obstacles is not None:
-                # Check if the obstacle label has already been added
-                if not hasattr(self, "_obstacle_label_added"):
-                    self._obstacle_label_added = False
-
+            if obstacles:
+                self._obstacle_label_added = getattr(self, "_obstacle_label_added", False)
                 for obs in obstacles:
-                    if not self._obstacle_label_added:
-                        if obs[0] == "ellipse":
-                            _, center, rx, ry = obs
-                            ellipse = Ellipse(xy=center, width=2*rx, height=2*ry,
-                                            edgecolor='r', facecolor='gray', alpha=0.5, label="Obstacle")
-                            self._ax.add_patch(ellipse)
-                        elif obs[0] == "rectangle":
-                            _, center, width, height = obs
-                            rect = Rectangle((center[0]-width/2, center[1]-height/2), width, height,
-                                            edgecolor='b', facecolor='lightblue', alpha=0.5, label="Obstacle")
-                            self._ax.add_patch(rect)
-                        self._obstacle_label_added = True
-                    else:
-                        if obs[0] == "ellipse":
-                            _, center, rx, ry = obs
-                            ellipse = Ellipse(xy=center, width=2*rx, height=2*ry,
-                                            edgecolor='r', facecolor='gray', alpha=0.5)
-                            self._ax.add_patch(ellipse)
-                        elif obs[0] == "rectangle":
-                            _, center, width, height = obs
-                            rect = Rectangle((center[0]-width/2, center[1]-height/2), width, height,
-                                            edgecolor='b', facecolor='lightblue', alpha=0.5)
-                            self._ax.add_patch(rect)
-                    
-            # Plot the initial traj
+                    if obs[0] == "ellipse":
+                        _, center, rx, ry = obs
+                        self._ax.add_patch(Ellipse(xy=center, width=2*rx, height=2*ry,
+                                                edgecolor='r', facecolor='gray', alpha=0.5, 
+                                                label="Obstacle" if not self._obstacle_label_added else ""))
+                    elif obs[0] == "rectangle":
+                        _, center, width, height = obs
+                        self._ax.add_patch(Rectangle((center[0]-width/2, center[1]-height/2), width, height,
+                                                    edgecolor='b', facecolor='lightblue', alpha=0.5, 
+                                                    label="Obstacle" if not self._obstacle_label_added else ""))
+                    self._obstacle_label_added = True
+
+            # Plot initial and smoothed traj
             initial_positions = np.array([state[0] for state in self.path])
             self._ax.plot(initial_positions[:, 0], initial_positions[:, 1], 'y--', label='Initial traj')
-
-            # Line for the current smoothed traj
             self._traj_line, = self._ax.plot([], [], '-o', markersize=2, label='Smoothed traj')
 
-            # Plot the milestones
+            # Plot milestones and shortcut points
             self._milestones, = self._ax.plot([], [], 'ro', markersize=8, label='Milestones')
+            self._shortcut_points, = self._ax.plot([], [], 'yo', markersize=8, label='Shortcut Points')
 
-            # Place legend in the upper-left corner
+            # Add legend and iteration text
             self._ax.legend(loc="upper left")
+            self._iteration_text = self._ax.text(0.95, 0.95, "", transform=self._ax.transAxes, 
+                                                fontsize=12, color="blue", ha="right", va="top")
 
-            # Text for iteration number in the upper-right corner
-            self._iteration_text = self._ax.text(0.95, 0.95, "", 
-                                                transform=self._ax.transAxes, 
-                                                fontsize=12, color="blue",
-                                                ha="right", va="top")
-
-        # Update the traj
-        positions = []
+        # Update plot
         times = np.linspace(0, np.sum(self.traj_segment_times), 500)
-        for t in times:
-            state = self.get_motion_states_at_global_t(t)
-            if state is not None:
-                positions.append(state[0])
-
-        positions = np.array(positions)
+        positions = np.array([self.get_motion_states_at_global_t(t)[0] for t in times if self.get_motion_states_at_global_t(t) is not None])
         self._traj_line.set_data(positions[:, 0], positions[:, 1])
 
-        # Update milestones
-        milestone_positions = np.array([state[0] for state in self.path])
-        self._milestones.set_data(milestone_positions[:, 0], milestone_positions[:, 1])
+        # Update milestones and shortcut points
+        initial_positions = np.array([state[0] for state in self.path])
+        self._milestones.set_data(initial_positions[:, 0], initial_positions[:, 1])
+        self._shortcut_points.set_data([shortcut_start[0][0], shortcut_end[0][0]], [shortcut_start[0][1], shortcut_end[0][1]])
 
         # Update iteration text
         if iteration is not None:
             self._iteration_text.set_text(f"Iteration: {iteration}")
 
+        # Redraw the plot
         self._fig.canvas.draw()
         plt.pause(0.1)

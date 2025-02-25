@@ -154,8 +154,8 @@ if __name__ == "__main__":
     else:
         print("No path was found.")
     
-    ax = scene.plot_scene(tree=tree, path=path)
-    plt.show()
+    # ax = scene.plot_scene(tree=tree, path=path)
+    # plt.show()
     
     # Smooth the path (the Smoother class must be implemented elsewhere)
     vmax, amax = np.array([1.0, 1.0]), np.array([1.0, 1.0])
