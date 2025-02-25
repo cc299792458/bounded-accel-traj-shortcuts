@@ -28,6 +28,7 @@ class Smoother:
         - amax: Maximum acceleration for each dimension.
         - collision_checker: Function to check for collisions.
         - max_iterations: Maximum number of shortcut iterations.
+        - obstacles: A list of obstacles to be included in the plot.
         """
         self.path = path
         self.vmax = vmax
@@ -311,9 +312,6 @@ class Smoother:
             shortcut_end (tuple): A tuple representing the end point of the shortcut (x, y).
             candidate_shortcut_time (float, optional): The time duration for the candidate shortcut to be visualized.
             candidate_shortcut_param (optional): Parameters defining the candidate shortcut, if applicable.
-
-        Raises:
-            ValueError: If the dimension of the trajectory is not 2D.
         """
         if self.dimension != 2:
             raise ValueError("This plotting function only supports 2D trajectories.")
