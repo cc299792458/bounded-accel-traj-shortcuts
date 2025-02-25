@@ -61,11 +61,11 @@ class Smoother:
                 self.plot_traj(iteration, shortcut_start=shortcut_start, shortcut_end=shortcut_end, obstacles=self.obstacles)
 
             shortcut_traj_time, shortcut_traj_param = self.compute_traj_segment(shortcut_start, shortcut_end)
-            
             # Only update if the traj exists
             if shortcut_traj_param is not None:
-                self.update_segment_data(shortcut_start, shortcut_end, t1, t2, shortcut_traj_time, shortcut_traj_param)
-                self.plot_traj(iteration, shortcut_start=shortcut_start, shortcut_end=shortcut_end, obstacles=self.obstacles)
+                # Plot again if update segment data successfully
+                if self.update_segment_data(shortcut_start, shortcut_end, t1, t2, shortcut_traj_time, shortcut_traj_param):
+                    self.plot_traj(iteration, shortcut_start=shortcut_start, shortcut_end=shortcut_end, obstacles=self.obstacles)
 
 
         return self.path, self.traj_segment_times, self.traj_segment_params
@@ -86,6 +86,14 @@ class Smoother:
         self.traj_segment_times = np.array(self.traj_segment_times)
 
         return True
+    
+    def compute_traj_segment(self, start_state, end_state):
+        traj_segment_time = self.compute_traj_segment_time(start_state, end_state)
+        traj_segment_param = self.compute_traj_segment_param(
+            start_state, end_state, traj_segment_time
+        )
+        
+        return traj_segment_time, traj_segment_param
 
     def compute_traj_segment_time(self, start_state, end_state):
         """
@@ -106,7 +114,7 @@ class Smoother:
 
         return max(t_requireds)
 
-    def compute_traj_segment_param(self, start_state, end_state, segment_time):
+    def compute_traj_segment_param(self, start_state, end_state, traj_segment_time):
         """
         Calculate the traj for a single segment using minimum acceleration interpolants.
         """
@@ -119,7 +127,7 @@ class Smoother:
                 start_vel=start_state[1][dim],
                 end_vel=end_state[1][dim],
                 vmax=self.vmax[dim],
-                T=segment_time,
+                T=traj_segment_time,
                 a_threshold=self.amax[dim]
             )
             if trajectories is None:
@@ -172,7 +180,7 @@ class Smoother:
             elapsed_time += traj_segment_time
 
         # If t is beyond the total traj duration
-        return None
+        raise ValueError
 
     def get_motion_states_at_local_t(self, start_state, traj_segment_param, t):
         """
@@ -201,14 +209,6 @@ class Smoother:
             position[dim], velocity[dim] = pos, vel
 
         return position, velocity
-    
-    def compute_traj_segment(self, start_state, end_state):
-        traj_segment_time = self.compute_traj_segment_time(start_state, end_state)
-        traj_segment_param = self.compute_traj_segment_param(
-            start_state, end_state, traj_segment_time
-        )
-        
-        return traj_segment_time, traj_segment_param
 
     def update_segment_data(self, start_state, end_state, t1, t2, shortcut_traj_time, shortcut_traj_param):
         """
@@ -249,15 +249,15 @@ class Smoother:
 
         # Cancel update if the connection traj is invalid, does not reduce total time, or is not collision-free
         if connect_param_before is None or connect_param_after is None:
-            return None
+            return False
         if total_middle_time < connect_time_before + shortcut_traj_time + connect_time_after:
-            return None
+            return False
         if not self.is_segment_collision_free(start_state, shortcut_traj_time, shortcut_traj_param):
-            return None
+            return False
         if not self.is_segment_collision_free(prev_state, connect_time_before, connect_param_before):
-            return None
+            return False
         if not self.is_segment_collision_free(end_state, connect_time_after, connect_param_after):
-            return None
+            return False
 
         # Update path, segment_time and segment_traj using np.concatenate
         self.path = np.concatenate([
@@ -281,6 +281,8 @@ class Smoother:
             shortcut_traj_param,
             connect_param_after
         ] + after_traj
+
+        return True
     
     def is_segment_collision_free(self, start_state, traj_segment_time, traj_segment_param, time_step=0.01):
         # Generate time points to sample along the traj
