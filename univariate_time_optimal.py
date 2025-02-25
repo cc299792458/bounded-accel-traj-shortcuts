@@ -90,8 +90,10 @@ def univariate_time_optimal_interpolants(start_pos, end_pos, start_vel, end_vel,
     valid_trajs = {k: v for k, v in trajectories.items() if v is not None}
     if valid_trajs:
         optimal_label = min(valid_trajs, key=lambda k: valid_trajs[k][0])
+    # NOTE: Seems like this function definitely has a solution.
     else:
-        optimal_label = None
+        raise ValueError
+    #     optimal_label = None
 
     return trajectories, optimal_label
 

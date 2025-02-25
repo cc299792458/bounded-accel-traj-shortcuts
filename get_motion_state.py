@@ -1,4 +1,4 @@
-def get_motion_state_at_local_t(t, traj_type, start_pos, start_vel, end_vel, vmax, amax, switch_time1, switch_time2, total_time):
+def get_motion_state_at_local_t(t, traj_type, start_pos, start_vel, amax, switch_time1, switch_time2):
     """
     Return the position, velocity, and acceleration at local time t for the given trajectory type.
     
@@ -6,11 +6,9 @@ def get_motion_state_at_local_t(t, traj_type, start_pos, start_vel, end_vel, vma
     - t: local time within the trajectory [0, total_time].
     - traj_type: one of 'P+P-', 'P-P+', 'P+L+P-', 'P-L-P+'.
     - start_pos, start_vel: initial position and velocity.
-    - end_vel: final velocity (used for consistency; some cases might not need it directly).
-    - vmax, amax: maximum velocity and acceleration.
+    - amax: maximum acceleration.
     - switch_time1: first switching time (end of the first phase)
     - switch_time2: second switching time (for trajectories with cruise phase, otherwise None)
-    - total_time: total duration of the trajectory.
     
     Returns:
     - pos, vel, acc: position, velocity, and acceleration at time t.

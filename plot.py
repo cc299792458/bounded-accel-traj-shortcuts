@@ -42,8 +42,7 @@ def plot_trajectory(trajectories, start_pos, end_pos, start_vel, end_vel, vmax, 
                 total_time, switch_time1, switch_time2 = trajectories[candidate]
                 t_samples = np.linspace(0, total_time, num_points)
                 # Use amax as the acceleration parameter in get_motion_state_at_local_t
-                states = [get_motion_state_at_local_t(t, candidate, start_pos, start_vel, end_vel,
-                                                        vmax, amax, switch_time1, switch_time2, total_time)
+                states = [get_motion_state_at_local_t(t, candidate, start_pos, start_vel, amax, switch_time1, switch_time2)
                           for t in t_samples]
                 title_text = f"{candidate} (Total Time: {float(total_time):.2f} s)"
             elif solution_type == 'min_accel':
@@ -51,8 +50,7 @@ def plot_trajectory(trajectories, start_pos, end_pos, start_vel, end_vel, vmax, 
                 acc, switch_time1, switch_time2 = trajectories[candidate]
                 t_samples = np.linspace(0, T, num_points)
                 # Use candidate's acceleration as the effective acceleration in the state function, total time is T
-                states = [get_motion_state_at_local_t(t, candidate, start_pos, start_vel, end_vel,
-                                                        vmax, acc, switch_time1, switch_time2, T)
+                states = [get_motion_state_at_local_t(t, candidate, start_pos, start_vel, acc, switch_time1, switch_time2)
                           for t in t_samples]
                 title_text = f"{candidate} (Min Accel: {float(acc):.3f} m/s^2)"
             else:

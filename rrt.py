@@ -58,7 +58,6 @@ def rrt(start, goal, bounds, collision_checker=default_collision_checker, step_s
         num_checks = 10
         for j in range(num_checks + 1):
             intermediate = nearest_node.position + (j / num_checks) * (new_position - nearest_node.position)
-            # Here, velocity is set to zero
             if not collision_checker((intermediate, np.zeros_like(intermediate))):
                 collision_free = False
                 break
@@ -81,8 +80,8 @@ def rrt(start, goal, bounds, collision_checker=default_collision_checker, step_s
                 current = current.parent
             path.reverse()  # From start to goal
             
-            # Convert the path to the state format required by Smoother (velocity set to zero)
-            path_states = [(pos, np.zeros_like(pos)) for pos in path]
+            # Convert the path to the state format (velocity is set to zero)
+            path_states = [(pos, np.zeros_like(pos)) for pos in path]         
             return np.array(path_states, dtype=object), nodes
     
     return None, nodes  # No path found within max_iterations
