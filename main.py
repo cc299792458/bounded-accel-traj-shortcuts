@@ -174,7 +174,7 @@ if __name__ == "__main__":
     smoother = Smoother(path=path, vmax=vmax, amax=amax, collision_checker=scene.collision_checker, obstacles=scene.obstacles)
     
     start_time = time.time()
-    smoother.smooth_path(plot_traj=True, save_gif=False)
+    smoother.smooth_path(plot_traj=False, save_gif=False)
     end_time = time.time()
     print(f"Smoothing time: {end_time - start_time}")
     plt.close()
