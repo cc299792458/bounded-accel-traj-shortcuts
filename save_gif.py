@@ -15,7 +15,7 @@ def save_gif_from_frames(frames_folder="smoothing_frames", output_gif="trajector
             frame_path = os.path.join(frames_folder, frame_file)
             images.append(imageio.imread(frame_path))
 
-    imageio.mimsave(output_gif, images, duration=0.1)  # Adjust the duration as needed
+    imageio.mimsave(output_gif, images, duration=200)  # Adjust the duration as needed
 
 
 if __name__ == '__main__':
