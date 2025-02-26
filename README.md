@@ -5,7 +5,7 @@ This repository contains a Python implementation of a real-time trajectory smoot
 
 It efficiently generates shortcut trajectories that satisfy **velocity and acceleration constraints**.
 
-📌 **Note**: This implementation is a **reproduction** of the original paper. You can find the original implementation **[here.](https://github.com/krishauser/KrisLibrary/blob/master/planning/ParabolicRamp.cpp)**.  
+📌 **Note**: This implementation is a **reproduction** of the original paper. You can find the original implementation **[here](https://github.com/krishauser/KrisLibrary/blob/master/planning/ParabolicRamp.cpp)**.  
 
 ---
 
