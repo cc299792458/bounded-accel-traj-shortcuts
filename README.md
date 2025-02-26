@@ -19,7 +19,7 @@ The following example illustrates how the trajectory smoothing algorithm refines
 
 To better visualize the effect of smoothing, see the GIF below:  
 
-<div style="text-align: center;">
-  <img src="trajectory_smoothing.gif"/>
+<div align=center>
+  <img src="trajectory_smoothing.gif" width="75%"/>
 </div>
 
