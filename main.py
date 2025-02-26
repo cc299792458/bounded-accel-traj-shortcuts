@@ -111,7 +111,7 @@ class Scene:
             elif obs[0] == "rectangle":
                 _, center, width, height = obs
                 rect = Rectangle((center[0]-width/2, center[1]-height/2), width, height,
-                                edgecolor='b', facecolor='lightblue', alpha=0.5)
+                                edgecolor='r', facecolor='gray', alpha=0.5)
                 ax.add_patch(rect)
         # Plot start and goal points
         ax.plot(self.start[0], self.start[1], 'go', markersize=10, label='Start')
@@ -166,7 +166,7 @@ if __name__ == "__main__":
     else:
         print("No path was found.")
     
-    ax = scene.plot_scene(tree=tree, path=path, save_image=False)
+    ax = scene.plot_scene(tree=tree, path=path, save_image=True)
     plt.show()
     
     # Smooth the path
@@ -174,11 +174,11 @@ if __name__ == "__main__":
     smoother = Smoother(path=path, vmax=vmax, amax=amax, collision_checker=scene.collision_checker, obstacles=scene.obstacles)
     
     start_time = time.time()
-    smoother.smooth_path(plot_traj=False, save_gif=False)
+    smoother.smooth_path(plot_traj=True, save_gif=True)
     end_time = time.time()
     print(f"Smoothing time: {end_time - start_time}")
     plt.close()
 
     smoothed_path = smoother.interpolate_control_trajectory()
-    ax = scene.plot_scene(tree=tree, smoothed_path=smoothed_path, save_image=False, image_path='rrt_smoothed')
+    ax = scene.plot_scene(tree=tree, smoothed_path=smoothed_path, save_image=True, image_path='rrt_smoothed')
     plt.show()

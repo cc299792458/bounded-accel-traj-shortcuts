@@ -338,7 +338,7 @@ class Smoother:
                     elif obs[0] == "rectangle":
                         _, center, width, height = obs
                         self._ax.add_patch(Rectangle((center[0]-width/2, center[1]-height/2), width, height,
-                                                    edgecolor='b', facecolor='lightblue', alpha=0.5, 
+                                                    edgecolor='r', facecolor='gray', alpha=0.5,
                                                     label="Obstacle" if not self._obstacle_label_added else ""))
                     self._obstacle_label_added = True
 
