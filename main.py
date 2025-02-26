@@ -94,7 +94,7 @@ class Scene:
         pos = state[0]
         return self._is_point_collision_free(pos)
     
-    def plot_scene(self, tree=None, path=None, ax=None, save_image=False, image_path="rrt.png"):
+    def plot_scene(self, tree=None, path=None, smoothed_path=None, ax=None, save_image=False, image_path="rrt.png"):
         """
         Plot the scene, including obstacles, start/goal points, the RRT tree, and the found path.
         Different obstacle types are shown with different colors.
@@ -127,6 +127,9 @@ class Scene:
         if path is not None:
             path_positions = np.array([state[0] for state in path])
             ax.plot(path_positions[:, 0], path_positions[:, 1], color='red', linewidth=3, label='Path')
+        if smoothed_path is not None:
+            smoothed_path_positions = np.array([state[0] for state in smoothed_path])
+            ax.plot(smoothed_path_positions[:, 0], smoothed_path_positions[:, 1], color='purple', linewidth=3, label='Smoothed Path')
         x_min, x_max, y_min, y_max = self.bounds
         ax.set_xlim(x_min, x_max)
         ax.set_ylim(y_min, y_max)
@@ -163,11 +166,19 @@ if __name__ == "__main__":
     else:
         print("No path was found.")
     
-    ax = scene.plot_scene(tree=tree, path=path, save_image=True)
+    ax = scene.plot_scene(tree=tree, path=path, save_image=False)
     plt.show()
     
-    # Smooth the path (the Smoother class must be implemented elsewhere)
+    # Smooth the path
     vmax, amax = np.array([1.0, 1.0]), np.array([1.0, 1.0])
     smoother = Smoother(path=path, vmax=vmax, amax=amax, collision_checker=scene.collision_checker, obstacles=scene.obstacles)
-    smoother.smooth_path(plot_traj=True, save_gif=True)
-    time.sleep(5.0)
+    
+    start_time = time.time()
+    smoother.smooth_path(plot_traj=False, save_gif=False)
+    end_time = time.time()
+    print(f"Smoothing time: {end_time - start_time}")
+    plt.close()
+
+    smoothed_path = smoother.interpolate_control_trajectory()
+    ax = scene.plot_scene(tree=tree, smoothed_path=smoothed_path, save_image=False, image_path='rrt_smoothed')
+    plt.show()

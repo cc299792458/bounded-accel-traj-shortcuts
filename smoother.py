@@ -392,3 +392,28 @@ class Smoother:
         # Redraw the plot
         self._fig.canvas.draw()
         plt.pause(0.1)
+
+    def interpolate_control_trajectory(self, control_frequency=60):
+        """
+        Interpolates the trajectory at a given control frequency.
+
+        This function samples the trajectory at uniform time intervals based on 
+        the specified control frequency and returns the interpolated trajectory.
+
+        Parameters:
+        - control_frequency: The frequency (Hz) at which to sample the trajectory.
+
+        Returns:
+        - A numpy array of interpolated trajectory states [(position, velocity)].
+        """
+        total_time = np.sum(self.traj_segment_times)
+        num_points = int(total_time * control_frequency) + 1
+        times = np.linspace(0, total_time, num_points)
+        interpolated_trajectory = []
+        for t in times:
+            state = self.get_motion_states_at_global_t(t)
+            if state is not None:
+                interpolated_trajectory.append(state)
+        interpolated_trajectory = np.array(interpolated_trajectory)
+
+        return interpolated_trajectory
