@@ -19,4 +19,5 @@ The following example illustrates how the trajectory smoothing algorithm refines
 
 To better visualize the effect of smoothing, see the GIF below:  
 
-![Trajectory Smoothing](trajectory_smoothing.gif)
+<img src="trajectory_smoothing.gif" width="300" loop />
+
