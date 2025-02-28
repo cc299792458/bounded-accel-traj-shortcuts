@@ -17,7 +17,7 @@ The following example illustrates how the trajectory smoothing algorithm refines
 |----------------|----------------|
 | ![RRT Path](rrt.png) | ![Smoothed Path](rrt_smoothed.png) |
 
-To better visualize the effect of smoothing, see the GIF below:  
+To better visualize the process of smoothing, see the GIF below:  
 
 <div align=center>
   <img src="trajectory_smoothing.gif" width="75%"/>
