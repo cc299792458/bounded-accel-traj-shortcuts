@@ -8,9 +8,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from matplotlib.patches import Ellipse, Rectangle
-from get_motion_state import get_motion_state_at_local_t
 from minimum_acceleration import minimum_acceleration_interpolants
 from univariate_time_optimal import univariate_time_optimal_interpolants
+from get_motion_state import get_motion_states_at_global_t, get_motion_states_at_local_t
 
 class Smoother:
     """
@@ -19,12 +19,13 @@ class Smoother:
     and acceleration, using optimal shortcuts for improved performance and natural-looking motion.
     """
     
-    def __init__(self, path, vmax, amax, collision_checker, max_iterations=100, obstacles=None):
+    def __init__(self, path, bounds, vmax, amax, collision_checker, max_iterations=100, obstacles=None):
         """
         Initialize the Smoother class.
 
         Parameters:
         - path: List of waypoints np.array([position, velocity])
+        - bounds: Position boundary limits, a N*2 array, where N is the number of dimensions.
         - vmax: Maximum velocity for each dimension.
         - amax: Maximum acceleration for each dimension.
         - collision_checker: Function to check for collisions.
@@ -32,6 +33,7 @@ class Smoother:
         - obstacles: A list of obstacles to be included in the plot.
         """
         self.path = path
+        self.bounds = bounds
         self.vmax = vmax
         self.amax = amax
         self.dimension = self.vmax.shape[0]
@@ -57,8 +59,8 @@ class Smoother:
             total_time = np.sum(self.traj_segment_times)
             self.total_time.append(total_time)
             t1, t2 = self.select_random_times(total_time)
-            shortcut_start = self.get_motion_states_at_global_t(t1)
-            shortcut_end = self.get_motion_states_at_global_t(t2)
+            shortcut_start = get_motion_states_at_global_t(self.path, self.traj_segment_times, self.traj_segment_params, t1, n_dim=self.dimension)
+            shortcut_end = get_motion_states_at_global_t(self.path, self.traj_segment_times, self.traj_segment_params, t2, n_dim=self.dimension)
             shortcut_traj_time, shortcut_traj_param = self.compute_traj_segment(shortcut_start, shortcut_end)
             if plot_traj:
                 self.plot_traj(iteration, shortcut_start=shortcut_start, shortcut_end=shortcut_end, 
@@ -158,62 +160,6 @@ class Smoother:
             t1, t2 = np.sort(random_times)
         return t1, t2
 
-    def get_motion_states_at_global_t(self, t):
-        """
-        Find the interpolated state (position, velocity) at a specific time t within the traj.
-
-        Input:
-        - t: The target time
-
-        Return:
-        - position: Numpy array of positions at time t.
-        - velocity: Numpy array of velocities at time t.
-        """
-        elapsed_time = 0
-
-        for i in range(self.traj_segment_times.shape[0]):  # Use shape[0] since segment_time is a NumPy array
-            traj_segment_time = self.traj_segment_times[i]
-            if elapsed_time + traj_segment_time >= t:
-                # Relative time within the current segment
-                relative_t = t - elapsed_time
-                start_state = self.path[i]
-
-                # Compute and return the interpolated state
-                return self.get_motion_states_at_local_t(start_state=start_state, traj_segment_param=self.traj_segment_params[i], t=relative_t)
-
-            elapsed_time += traj_segment_time
-
-        # If t is beyond the total traj duration. # NOTE: This could happen at the boundary due to the numerical precision issues
-        return None
-
-    def get_motion_states_at_local_t(self, start_state, traj_segment_param, t):
-        """
-        Compute the state (position, velocity) within a segment at time t.
-
-        Input:
-        - start_state: The starting state of the segment.
-        - traj_segment_param: traj parameters for each dimension.
-        - t: Relative time within the segment.
-
-        Return:
-        - position: Numpy array of positions at time t.
-        - velocity: Numpy array of velocities at time t.
-        """
-        position = np.zeros(self.dimension)
-        velocity = np.zeros(self.dimension)
-
-        for dim in range(self.dimension):
-            (amax, switch_time1, switch_time2), traj_type = traj_segment_param[dim]
-            start_pos, start_vel = start_state[0][dim], start_state[1][dim]
-
-            pos, vel, acc = get_motion_state_at_local_t(
-                t=t, traj_type=traj_type, start_pos=start_pos, start_vel=start_vel, 
-                amax=amax, switch_time1=switch_time1, switch_time2=switch_time2
-            )
-            position[dim], velocity[dim] = pos, vel
-
-        return position, velocity
-
     def update_segment_data(self, start_state, end_state, t1, t2, shortcut_traj_time, shortcut_traj_param):
         """
         Update the traj and path by replacing the section between t1 and t2 with a shortcut.
@@ -294,7 +240,7 @@ class Smoother:
         sampled_times = np.linspace(0, traj_segment_time, num_samples)
 
         for time in sampled_times:
-            state = self.get_motion_states_at_local_t(start_state=start_state, traj_segment_param=traj_segment_param, t=time)
+            state = get_motion_states_at_local_t(start_state=start_state, traj_segment_param=traj_segment_param, t=time, n_dim=self.dimension)
             if not self.collision_checker(state):
                 return False
         return True
@@ -360,7 +306,8 @@ class Smoother:
 
         # Update plot
         times = np.linspace(0, np.sum(self.traj_segment_times), 500)
-        positions = np.array([self.get_motion_states_at_global_t(t)[0] for t in times if self.get_motion_states_at_global_t(t) is not None])
+        positions = np.array([get_motion_states_at_global_t(self.path, self.traj_segment_times, self.traj_segment_params, t, n_dim=self.dimension)[0] 
+                              for t in times if get_motion_states_at_global_t(self.path, self.traj_segment_times, self.traj_segment_params, t, n_dim=self.dimension) is not None])
         self._traj_line.set_data(positions[:, 0], positions[:, 1])
 
         # Update milestones and shortcut points and optionally candidate shortcut
@@ -370,8 +317,8 @@ class Smoother:
         
         if candidate_shortcut_time is not None and candidate_shortcut_param is not None:
             times = np.linspace(0, candidate_shortcut_time, 20)
-            positions = np.array([self.get_motion_states_at_local_t(shortcut_start, candidate_shortcut_param, t)[0] for t in times 
-                                  if self.get_motion_states_at_local_t(shortcut_start, candidate_shortcut_param, t)[0] is not None])
+            positions = np.array([get_motion_states_at_local_t(shortcut_start, candidate_shortcut_param, t, n_dim=self.dimension)[0] for t in times 
+                                  if get_motion_states_at_local_t(shortcut_start, candidate_shortcut_param, t, n_dim=self.dimension)[0] is not None])
             self._candidate_shortcut.set_data(positions[:, 0], positions[:, 1])   
         else:
             self._candidate_shortcut.set_data([], [])
@@ -411,7 +358,7 @@ class Smoother:
         times = np.linspace(0, total_time, num_points)
         interpolated_trajectory = []
         for t in times:
-            state = self.get_motion_states_at_global_t(t)
+            state = get_motion_states_at_global_t(self.path, self.traj_segment_times, self.traj_segment_params, t, n_dim=self.dimension)
             if state is not None:
                 interpolated_trajectory.append(state)
         interpolated_trajectory = np.array(interpolated_trajectory)

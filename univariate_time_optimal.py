@@ -136,4 +136,4 @@ if __name__ == '__main__':
     )
     
     # Plot the optimal trajectory.
-    plot_trajectory(trajectories, start_pos, end_pos, start_vel, end_vel, vmax, amax=amax, solution_type='time_optimal')
+    plot_trajectory(trajectories, start_pos, start_vel, amax=amax, solution_type='time_optimal')

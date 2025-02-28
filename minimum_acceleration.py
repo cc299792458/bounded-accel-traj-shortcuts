@@ -144,4 +144,4 @@ if __name__ == '__main__':
     )
     
     # Plot the trajectory based on the selected candidate.
-    plot_trajectory(trajectories, start_pos, end_pos, start_vel, end_vel, vmax, T=T, solution_type='min_accel')
+    plot_trajectory(trajectories, start_pos, start_vel, T=T, solution_type='min_accel')

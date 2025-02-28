@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from get_motion_state import get_motion_state_at_local_t
 
-def plot_trajectory(trajectories, start_pos, end_pos, start_vel, end_vel, vmax, amax=None, T=None, num_points=100, solution_type='time_optimal'):
+def plot_trajectory(trajectories, start_pos, start_vel, amax=None, T=None, num_points=100, solution_type='time_optimal'):
     """
     Plot candidate motion primitives in a 2x2 grid.
     Each candidate subplot is subdivided into two rows:
@@ -20,7 +20,6 @@ def plot_trajectory(trajectories, start_pos, end_pos, start_vel, end_vel, vmax, 
         If a candidate is invalid, its value is None.
       - start_pos, end_pos: initial and final positions.
       - start_vel, end_vel: initial and final velocities.
-      - vmax: maximum velocity.
       - amax: maximum acceleration.
       - T: overall trajectory time when using 'min_accel' solution; for 'time_optimal', the total time is taken from the candidate.
       - num_points: number of sampling points for plotting.

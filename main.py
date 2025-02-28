@@ -171,12 +171,8 @@ if __name__ == "__main__":
     
     # Smooth the path
     vmax, amax = np.array([1.0, 1.0]), np.array([1.0, 1.0])
-    smoother = Smoother(path=path, vmax=vmax, amax=amax, collision_checker=scene.collision_checker, obstacles=scene.obstacles)
-    
-    start_time = time.time()
-    smoother.smooth_path(plot_traj=False, save_gif=False)
-    end_time = time.time()
-    print(f"Smoothing time: {end_time - start_time}")
+    smoother = Smoother(path=path, bounds=np.array(scene.bounds).reshape(-1, 2), vmax=vmax, amax=amax, collision_checker=scene.collision_checker, obstacles=scene.obstacles)
+    smoother.smooth_path(plot_traj=True, save_gif=False)
     plt.close()
 
     smoothed_path = smoother.interpolate_control_trajectory()
