@@ -8,8 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from matplotlib.patches import Ellipse, Rectangle
-from minimum_acceleration import minimum_acceleration_interpolants
-from univariate_time_optimal import univariate_time_optimal_interpolants
+from compute_traj_segment import compute_traj_segment
 from get_motion_state import get_motion_states_at_global_t, get_motion_states_at_local_t
 
 class Smoother:
@@ -61,7 +60,7 @@ class Smoother:
             t1, t2 = self.select_random_times(total_time)
             shortcut_start = get_motion_states_at_global_t(self.path, self.traj_segment_times, self.traj_segment_params, t1, n_dim=self.dimension)
             shortcut_end = get_motion_states_at_global_t(self.path, self.traj_segment_times, self.traj_segment_params, t2, n_dim=self.dimension)
-            shortcut_traj_time, shortcut_traj_param = self.compute_traj_segment(shortcut_start, shortcut_end)
+            shortcut_traj_time, shortcut_traj_param = compute_traj_segment(shortcut_start, shortcut_end, self.vmax, self.amax, n_dim=self.dimension)
             if plot_traj:
                 self.plot_traj(iteration, shortcut_start=shortcut_start, shortcut_end=shortcut_end, 
                                    candidate_shortcut_time=shortcut_traj_time, candidate_shortcut_param=shortcut_traj_param,
@@ -85,7 +84,7 @@ class Smoother:
         
         for i in range(self.path.shape[0] - 1):
             start_state, end_state = self.path[i], self.path[i + 1]
-            traj_segment_time, traj_segment_param = self.compute_traj_segment(start_state, end_state)
+            traj_segment_time, traj_segment_param = compute_traj_segment(start_state, end_state, self.vmax, self.amax, n_dim=self.dimension)
             if traj_segment_param is None:
                 return False
             self.traj_segment_times.append(traj_segment_time)
@@ -94,54 +93,6 @@ class Smoother:
         self.traj_segment_times = np.array(self.traj_segment_times)
 
         return True
-    
-    def compute_traj_segment(self, start_state, end_state):
-        traj_segment_time = self.compute_traj_segment_time(start_state, end_state)
-        traj_segment_param = self.compute_traj_segment_param(start_state, end_state, traj_segment_time)
-        
-        return traj_segment_time, traj_segment_param
-
-    def compute_traj_segment_time(self, start_state, end_state):
-        """
-        Calculate the maximum time required to traverse a segment across all dimensions,
-        considering vmax and amax constraints.
-        """
-        t_requireds = []
-        for dim in range(self.dimension):
-            trajectories, optimal_label = univariate_time_optimal_interpolants(
-                start_pos=start_state[0][dim],
-                end_pos=end_state[0][dim],
-                start_vel=start_state[1][dim],
-                end_vel=end_state[1][dim],
-                vmax=self.vmax[dim],
-                amax=self.amax[dim]
-            )
-            t_requireds.append(trajectories[optimal_label][0])
-
-        return max(t_requireds)
-
-    def compute_traj_segment_param(self, start_state, end_state, traj_segment_time):
-        """
-        Calculate the traj for a single segment using minimum acceleration interpolants.
-        """
-        # Vectorized calculation for all dimensions
-        traj_params = []
-        for dim in range(self.dimension):
-            trajectories, optimal_label = minimum_acceleration_interpolants(
-                start_pos=start_state[0][dim],
-                end_pos=end_state[0][dim],
-                start_vel=start_state[1][dim],
-                end_vel=end_state[1][dim],
-                vmax=self.vmax[dim],
-                T=traj_segment_time,
-                a_threshold=self.amax[dim]
-            )
-            if trajectories is None:
-                # NOTE: This is actually possible. See consistency_validation.py for an example.
-                return None
-            traj_params.append((trajectories[optimal_label], optimal_label))
-
-        return np.array(traj_params, dtype=object)
     
     def select_random_times(self, total_time, min_time_interval=0.01):
         """
@@ -192,10 +143,10 @@ class Smoother:
 
         # Locate the start and end nodes for connection
         prev_state = self.path[start_index]  # Previous node before t1
-        connect_time_before, connect_param_before = self.compute_traj_segment(prev_state, start_state)
+        connect_time_before, connect_param_before = compute_traj_segment(prev_state, start_state, self.vmax, self.amax, n_dim=self.dimension)
 
         next_state = self.path[end_index + 1]  # Next node after t2
-        connect_time_after, connect_param_after = self.compute_traj_segment(end_state, next_state)
+        connect_time_after, connect_param_after = compute_traj_segment(end_state, next_state, self.vmax, self.amax, n_dim=self.dimension)
 
         # Cancel update if the connection traj is invalid, does not reduce total time, or is not collision-free
         if connect_param_before is None or connect_param_after is None:
