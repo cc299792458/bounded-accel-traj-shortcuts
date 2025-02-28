@@ -238,7 +238,7 @@ class Smoother:
 
             # Plot initial and smoothed traj
             initial_positions = np.array([state[0] for state in self.path])
-            self._ax.plot(initial_positions[:, 0], initial_positions[:, 1], 'y--', label='Initial traj')
+            self._ax.plot(initial_positions[:, 0], initial_positions[:, 1], 'b--', label='Initial traj')
             self._traj_line, = self._ax.plot([], [], '-o', markersize=2, label='Smoothed traj')
 
             # Plot milestones and shortcut points and optionally candidate shortcut
