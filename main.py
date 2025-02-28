@@ -169,8 +169,8 @@ if __name__ == "__main__":
     
     # Smooth the path
     vmax, amax = np.array([1.0, 1.0]), np.array([1.0, 1.0])
-    smoother = Smoother(path=path, bounds=np.array(scene.bounds).reshape(-1, 2), vmax=vmax, amax=amax, collision_checker=scene.collision_checker, obstacles=scene.obstacles)
-    smoother.smooth_path(plot_traj=True, save_gif=False)
+    smoother = Smoother(path=path, bounds=np.vstack((scene.bounds[::2], scene.bounds[1::2])), vmax=vmax, amax=amax, collision_checker=scene.collision_checker, obstacles=scene.obstacles)
+    smoother.smooth_path(plot_traj=False, save_gif=False)
     plt.close()
 
     smoothed_path = smoother.interpolate_control_trajectory()

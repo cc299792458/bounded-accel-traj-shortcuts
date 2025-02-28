@@ -8,7 +8,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse, Rectangle
 
-from collision import is_segment_collision_free
 from compute_traj_segment import compute_traj_segment
 from get_motion_state import get_motion_states_at_global_t, get_motion_states_at_local_t
 
@@ -57,7 +56,7 @@ class Smoother:
         """
         # The algorithm fails if the initial step fails
         if not self.generate_initial_traj():
-            return None, None, None
+            return self.path, None, None
 
         for iteration in range(self.max_iterations):
             total_time = np.sum(self.traj_segment_times)
@@ -65,7 +64,8 @@ class Smoother:
             t1, t2 = self.select_random_times(total_time)
             shortcut_start = get_motion_states_at_global_t(self.path, self.traj_segment_times, self.traj_segment_params, t1, n_dim=self.dimension)
             shortcut_end = get_motion_states_at_global_t(self.path, self.traj_segment_times, self.traj_segment_params, t2, n_dim=self.dimension)
-            shortcut_traj_time, shortcut_traj_param = compute_traj_segment(shortcut_start, shortcut_end, self.vmax, self.amax, n_dim=self.dimension)
+            shortcut_traj_time, shortcut_traj_param = compute_traj_segment(shortcut_start, shortcut_end, self.vmax, self.amax, 
+                                                                           collision_checker=self.collision_checker, bounds=self.bounds, n_dim=self.dimension)
             if plot_traj:
                 self.plot_traj(iteration, shortcut_start=shortcut_start, shortcut_end=shortcut_end, 
                                    candidate_shortcut_time=shortcut_traj_time, candidate_shortcut_param=shortcut_traj_param,
@@ -89,7 +89,8 @@ class Smoother:
         
         for i in range(self.path.shape[0] - 1):
             start_state, end_state = self.path[i], self.path[i + 1]
-            traj_segment_time, traj_segment_param = compute_traj_segment(start_state, end_state, self.vmax, self.amax, n_dim=self.dimension)
+            traj_segment_time, traj_segment_param = compute_traj_segment(start_state, end_state, self.vmax, self.amax, 
+                                                                         collision_checker=self.collision_checker, bounds=self.bounds, n_dim=self.dimension)
             if traj_segment_param is None:
                 return False
             self.traj_segment_times.append(traj_segment_time)
@@ -148,23 +149,19 @@ class Smoother:
 
         # Locate the start and end nodes for connection
         prev_state = self.path[start_index]  # Previous node before t1
-        connect_time_before, connect_param_before = compute_traj_segment(prev_state, start_state, self.vmax, self.amax, n_dim=self.dimension)
+        connect_time_before, connect_param_before = compute_traj_segment(prev_state, start_state, self.vmax, self.amax, 
+                                                                         collision_checker=self.collision_checker, bounds=self.bounds, n_dim=self.dimension)
 
         next_state = self.path[end_index + 1]  # Next node after t2
-        connect_time_after, connect_param_after = compute_traj_segment(end_state, next_state, self.vmax, self.amax, n_dim=self.dimension)
+        connect_time_after, connect_param_after = compute_traj_segment(end_state, next_state, self.vmax, self.amax, 
+                                                                       collision_checker=self.collision_checker, bounds=self.bounds, n_dim=self.dimension)
 
-        # Cancel update if the connection traj is invalid, does not reduce total time, or is not collision-free
+        # Cancel update if the connection traj is invalid or does not reduce total time
         if connect_param_before is None or connect_param_after is None:
             return False
         if total_middle_time < connect_time_before + shortcut_traj_time + connect_time_after:
-            return False
-        if not is_segment_collision_free(start_state, shortcut_traj_time, shortcut_traj_param, self.collision_checker, self.dimension):
-            return False
-        if not is_segment_collision_free(prev_state, connect_time_before, connect_param_before, self.collision_checker, self.dimension):
-            return False
-        if not is_segment_collision_free(end_state, connect_time_after, connect_param_after, self.collision_checker, self.dimension):
-            return False
-
+            return False    # NOTE: The issue is unlikely to occur, but it's better to be safe than sorry
+        
         # Update path, segment_time and segment_traj using np.concatenate
         self.path = np.concatenate([
             self.path[:start_index + 1],
