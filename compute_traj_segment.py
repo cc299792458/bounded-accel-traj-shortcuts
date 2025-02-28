@@ -7,12 +7,11 @@ from univariate_time_optimal import univariate_time_optimal_interpolants
 def compute_traj_segment(start_state, end_state, vmax, amax, collision_checker, bounds, n_dim):
     traj_segment_time = compute_traj_segment_time(start_state, end_state, vmax, amax, n_dim)
     traj_segment_param = compute_traj_segment_param(start_state, end_state, traj_segment_time, vmax, amax, n_dim)
-    
-    if not is_segment_feasible(start_state=start_state, traj_segment_time=traj_segment_time, traj_segment_param=traj_segment_param,
-                               collision_checker=collision_checker, bounds=bounds, n_dim=n_dim):
-        return None, None
 
-    return traj_segment_time, traj_segment_param
+    traj_feasibility = is_segment_feasible(start_state=start_state, traj_segment_time=traj_segment_time, traj_segment_param=traj_segment_param,
+                               collision_checker=collision_checker, bounds=bounds, n_dim=n_dim)
+
+    return traj_segment_time, traj_segment_param, traj_feasibility
 
 def compute_traj_segment_time(start_state, end_state, vmax, amax, n_dim):
     """

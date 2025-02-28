@@ -43,7 +43,7 @@ class Smoother:
         self.obstacles = obstacles
         self.total_time = []
 
-    def smooth_path(self, plot_traj=False, save_gif=False, save_path="smoothing_frames"):
+    def smooth_path(self, plot_traj=False, save_frames=False, save_path="smoothing_frames"):
         """
         Smooth the traj using time-optimal segments and shortcuts.
 
@@ -64,21 +64,22 @@ class Smoother:
             t1, t2 = self.select_random_times(total_time)
             shortcut_start = get_motion_states_at_global_t(self.path, self.traj_segment_times, self.traj_segment_params, t1, n_dim=self.dimension)
             shortcut_end = get_motion_states_at_global_t(self.path, self.traj_segment_times, self.traj_segment_params, t2, n_dim=self.dimension)
-            shortcut_traj_time, shortcut_traj_param = compute_traj_segment(shortcut_start, shortcut_end, self.vmax, self.amax, 
+            shortcut_traj_time, shortcut_traj_param, traj_feasibility = compute_traj_segment(shortcut_start, shortcut_end, self.vmax, self.amax, 
                                                                            collision_checker=self.collision_checker, bounds=self.bounds, n_dim=self.dimension)
             if plot_traj:
                 self.plot_traj(iteration, shortcut_start=shortcut_start, shortcut_end=shortcut_end, 
                                    candidate_shortcut_time=shortcut_traj_time, candidate_shortcut_param=shortcut_traj_param,
-                                   save_gif=save_gif, save_path=save_path)
-            # Only update if the traj exists
-            if shortcut_traj_param is not None:
+                                   save_frames=save_frames, save_path=save_path)
+            # Only update if the traj exists and feasible
+            if traj_feasibility:
                 # Plot again if update segment data successfully
                 if self.update_traj(shortcut_start, shortcut_end, t1, t2, shortcut_traj_time, shortcut_traj_param):
                     if plot_traj:
-                        self.plot_traj(iteration, shortcut_start=shortcut_start, shortcut_end=shortcut_end, save_gif=save_gif, save_path=save_path)
-            # Plot the final trajectory
-            if plot_traj:
-                self.plot_traj(iteration, shortcut_start=shortcut_start, shortcut_end=shortcut_end, save_gif=save_gif, save_path=save_path) 
+                        self.plot_traj(iteration, shortcut_start=shortcut_start, shortcut_end=shortcut_end, save_frames=save_frames, save_path=save_path)
+        
+        # Plot the final trajectory
+        if plot_traj:
+            self.plot_traj(iteration, shortcut_start=shortcut_start, shortcut_end=shortcut_end, save_frames=save_frames, save_path=save_path) 
 
         return self.path, self.traj_segment_times, self.traj_segment_params
     
@@ -89,9 +90,9 @@ class Smoother:
         
         for i in range(self.path.shape[0] - 1):
             start_state, end_state = self.path[i], self.path[i + 1]
-            traj_segment_time, traj_segment_param = compute_traj_segment(start_state, end_state, self.vmax, self.amax, 
+            traj_segment_time, traj_segment_param, traj_feasibility = compute_traj_segment(start_state, end_state, self.vmax, self.amax, 
                                                                          collision_checker=self.collision_checker, bounds=self.bounds, n_dim=self.dimension)
-            if traj_segment_param is None:
+            if traj_segment_param is None or not traj_feasibility:
                 return False
             self.traj_segment_times.append(traj_segment_time)
             self.traj_segment_params.append(traj_segment_param)
@@ -147,18 +148,23 @@ class Smoother:
         middle_segment_times = self.traj_segment_times[start_index:end_index+1]
         total_middle_time = np.sum(middle_segment_times)
 
-        # Locate the start and end nodes for connection
-        prev_state = self.path[start_index]  # Previous node before t1
-        connect_time_before, connect_param_before = compute_traj_segment(prev_state, start_state, self.vmax, self.amax, 
-                                                                         collision_checker=self.collision_checker, bounds=self.bounds, n_dim=self.dimension)
-
-        next_state = self.path[end_index + 1]  # Next node after t2
-        connect_time_after, connect_param_after = compute_traj_segment(end_state, next_state, self.vmax, self.amax, 
-                                                                       collision_checker=self.collision_checker, bounds=self.bounds, n_dim=self.dimension)
-
-        # Cancel update if the connection traj is invalid or does not reduce total time
-        if connect_param_before is None or connect_param_after is None:
+        # Calculate connection before
+        prev_state = self.path[start_index]
+        connect_time_before, connect_param_before, feasibility_before = compute_traj_segment(
+            prev_state, start_state, self.vmax, self.amax, 
+            collision_checker=self.collision_checker, bounds=self.bounds, n_dim=self.dimension)
+        if not feasibility_before:
             return False
+
+        # Calculate connection after
+        next_state = self.path[end_index + 1]
+        connect_time_after, connect_param_after, feasibility_after = compute_traj_segment(
+            end_state, next_state, self.vmax, self.amax, 
+            collision_checker=self.collision_checker, bounds=self.bounds, n_dim=self.dimension)
+        if not feasibility_after:
+            return False
+
+        # Cancel update if the connection traj does not reduce total time
         if total_middle_time < connect_time_before + shortcut_traj_time + connect_time_after:
             return False    # NOTE: The issue is unlikely to occur, but it's better to be safe than sorry
         
@@ -188,7 +194,7 @@ class Smoother:
         return True
     
     def plot_traj(self, iteration: int, shortcut_start: tuple, shortcut_end: tuple, 
-                  candidate_shortcut_time=None, candidate_shortcut_param=None, save_gif=False, save_path="smoothing_frames"):
+                  candidate_shortcut_time=None, candidate_shortcut_param=None, save_frames=False, save_path="smoothing_frames"):
         """
         Plot the current trajectory of the smoother object in 2D with animation during smoothing.
 
@@ -202,7 +208,7 @@ class Smoother:
             shortcut_end (tuple): A tuple representing the end point of the shortcut (x, y).
             candidate_shortcut_time (float, optional): The time duration for the candidate shortcut to be visualized.
             candidate_shortcut_param (optional): Parameters defining the candidate shortcut, if applicable.
-            save_gif (bool): Whether to save frames for gif.
+            save_frames (bool): Whether to save frames for gif.
             save_path (str): The folder where the frames will be saved.
         """
         # Initialize plot only on the first call
@@ -238,8 +244,7 @@ class Smoother:
             # Plot milestones and shortcut points and optionally candidate shortcut
             self._milestones, = self._ax.plot([], [], 'ro', markersize=8, label='Milestones')
             self._shortcut_points, = self._ax.plot([], [], 'yo', markersize=4, label='Shortcut Points')
-            if candidate_shortcut_time is not None and candidate_shortcut_param is not None:
-                self._candidate_shortcut, = self._ax.plot([], [], '-yo', markersize=1, label='Candidate Shortcut')    
+            self._candidate_shortcut, = self._ax.plot([], [], '-yo', markersize=1, label='Candidate Shortcut')    
 
             # Add legend and iteration text
             self._ax.legend(loc="lower left")
@@ -270,7 +275,7 @@ class Smoother:
             self._iteration_text.set_text(f"Iteration: {iteration}")
 
         # Save the frame if requested
-        if save_gif:
+        if save_frames:
             if not os.path.exists(save_path):
                 os.makedirs(save_path)
             if not hasattr(self, 'frame_index'):
