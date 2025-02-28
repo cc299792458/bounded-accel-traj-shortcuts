@@ -1,12 +1,10 @@
-import os
-import time
 import random
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.patches import Ellipse, Rectangle
 
 from rrt import rrt
 from smoother import Smoother
-from matplotlib.patches import Ellipse, Rectangle
 
 class Scene:
     """

@@ -6,8 +6,9 @@ This implementation is based on the method presented in the paper:
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-
 from matplotlib.patches import Ellipse, Rectangle
+
+from collision import is_segment_collision_free
 from compute_traj_segment import compute_traj_segment
 from get_motion_state import get_motion_states_at_global_t, get_motion_states_at_local_t
 
@@ -48,7 +49,11 @@ class Smoother:
         Smooth the traj using time-optimal segments and shortcuts.
 
         Returns:
-        - Updated path as a numpy array of waypoints [(position, velocity)].
+        - Smoothed path as a numpy array of waypoints [(position, velocity)].
+        - traj_segment_times: A numpy array of time durations for each segment. Each element represents the duration 
+            of the corresponding trajectory segment.
+        - traj_segment_params: A list of parameters for each trajectory segment, containing:
+            - For each segment, the parameters like acceleration limits, switch times, and trajectory type.
         """
         # The algorithm fails if the initial step fails
         if not self.generate_initial_traj():
@@ -68,7 +73,7 @@ class Smoother:
             # Only update if the traj exists
             if shortcut_traj_param is not None:
                 # Plot again if update segment data successfully
-                if self.update_segment_data(shortcut_start, shortcut_end, t1, t2, shortcut_traj_time, shortcut_traj_param):
+                if self.update_traj(shortcut_start, shortcut_end, t1, t2, shortcut_traj_time, shortcut_traj_param):
                     if plot_traj:
                         self.plot_traj(iteration, shortcut_start=shortcut_start, shortcut_end=shortcut_end, save_gif=save_gif, save_path=save_path)
             # Plot the final trajectory
@@ -111,7 +116,7 @@ class Smoother:
             t1, t2 = np.sort(random_times)
         return t1, t2
 
-    def update_segment_data(self, start_state, end_state, t1, t2, shortcut_traj_time, shortcut_traj_param):
+    def update_traj(self, start_state, end_state, t1, t2, shortcut_traj_time, shortcut_traj_param):
         """
         Update the traj and path by replacing the section between t1 and t2 with a shortcut.
         Also inserts connecting segments to ensure continuity.
@@ -153,11 +158,11 @@ class Smoother:
             return False
         if total_middle_time < connect_time_before + shortcut_traj_time + connect_time_after:
             return False
-        if not self.is_segment_collision_free(start_state, shortcut_traj_time, shortcut_traj_param):
+        if not is_segment_collision_free(start_state, shortcut_traj_time, shortcut_traj_param, self.collision_checker, self.dimension):
             return False
-        if not self.is_segment_collision_free(prev_state, connect_time_before, connect_param_before):
+        if not is_segment_collision_free(prev_state, connect_time_before, connect_param_before, self.collision_checker, self.dimension):
             return False
-        if not self.is_segment_collision_free(end_state, connect_time_after, connect_param_after):
+        if not is_segment_collision_free(end_state, connect_time_after, connect_param_after, self.collision_checker, self.dimension):
             return False
 
         # Update path, segment_time and segment_traj using np.concatenate
@@ -185,17 +190,6 @@ class Smoother:
 
         return True
     
-    def is_segment_collision_free(self, start_state, traj_segment_time, traj_segment_param, time_step=0.01):
-        # Generate time points to sample along the traj
-        num_samples = int(traj_segment_time / time_step) + 1
-        sampled_times = np.linspace(0, traj_segment_time, num_samples)
-
-        for time in sampled_times:
-            state = get_motion_states_at_local_t(start_state=start_state, traj_segment_param=traj_segment_param, t=time, n_dim=self.dimension)
-            if not self.collision_checker(state):
-                return False
-        return True
-
     def plot_traj(self, iteration: int, shortcut_start: tuple, shortcut_end: tuple, 
                   candidate_shortcut_time=None, candidate_shortcut_param=None, save_gif=False, save_path="smoothing_frames"):
         """
