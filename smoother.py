@@ -56,7 +56,7 @@ class Smoother:
         """
         # The algorithm fails if the initial step fails
         if not self.generate_initial_traj():
-            return self.path, None, None
+            return self.path, None, None    # NOTE: sometimes collision will happen to the initial trajectory.
 
         for iteration in range(self.max_iterations):
             total_time = np.sum(self.traj_segment_times)

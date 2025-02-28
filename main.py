@@ -170,9 +170,12 @@ if __name__ == "__main__":
     # Smooth the path
     vmax, amax = np.array([1.0, 1.0]), np.array([1.0, 1.0])
     smoother = Smoother(path=path, bounds=np.vstack((scene.bounds[::2], scene.bounds[1::2])), vmax=vmax, amax=amax, collision_checker=scene.collision_checker, obstacles=scene.obstacles)
-    smoother.smooth_path(plot_traj=True, save_frames=False)
+    path, traj_segment_times, traj_segment_params = smoother.smooth_path(plot_traj=True, save_frames=False)
     plt.close()
 
-    smoothed_path = smoother.interpolate_control_trajectory()
-    ax = scene.plot_scene(tree=tree, smoothed_path=smoothed_path, save_image=False, image_path='rrt_smoothed')
-    plt.show()
+    if traj_segment_times is not None and traj_segment_params is not None:
+        smoothed_path = smoother.interpolate_control_trajectory()
+        ax = scene.plot_scene(tree=tree, smoothed_path=smoothed_path, save_image=False, image_path='rrt_smoothed')
+        plt.show()
+    else:
+        print("Generated trajecotry is infeasible in this case.")
