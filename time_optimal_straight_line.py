@@ -40,7 +40,7 @@ def time_optimal_starigh_line(start_state, end_state, vmax, amax, collision_chec
         traj_segment_time = t1 * 2 + t2
         for i in range(n_dim):
             a, b = start_state[0][i], end_state[0][i]
-            traj_segment_param.append((abs((b - a)) * acc_s, t1, t1 + t2), "P+L+P-" if b >= a else "P-L+P+")
+            traj_segment_param.append(((abs((b - a)) * acc_s, t1, t1 + t2), "P+L+P-" if b >= a else "P-L-P+"))
     
     traj_segment_param = np.array(traj_segment_param, dtype=object)
 
