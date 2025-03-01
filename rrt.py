@@ -55,7 +55,7 @@ def rrt(start, goal, bounds, collision_checker=default_collision_checker, step_s
         
         # Check for collision along the line from the nearest node to the new position
         collision_free = True
-        num_checks = 10
+        num_checks = 100
         for j in range(num_checks + 1):
             intermediate = nearest_node.position + (j / num_checks) * (new_position - nearest_node.position)
             if not collision_checker((intermediate, np.zeros_like(intermediate))):

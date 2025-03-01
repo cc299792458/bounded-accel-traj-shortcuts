@@ -168,8 +168,9 @@ if __name__ == "__main__":
     plt.show()
     
     # Smooth the path
-    vmax, amax = np.array([1.0, 1.0]), np.array([1.0, 1.0])
-    smoother = Smoother(path=path, bounds=np.vstack((scene.bounds[::2], scene.bounds[1::2])), vmax=vmax, amax=amax, collision_checker=scene.collision_checker, obstacles=scene.obstacles)
+    vmax, amax = np.array([1.0, 2.0]), np.array([2.0, 1.0])
+    smoother = Smoother(path=path, bounds=np.vstack((scene.bounds[::2], scene.bounds[1::2])), vmax=vmax, amax=amax, 
+                        collision_checker=scene.collision_checker, obstacles=scene.obstacles, max_iterations=100)
     path, traj_segment_times, traj_segment_params = smoother.smooth_path(plot_traj=True, save_frames=False)
     plt.close()
 

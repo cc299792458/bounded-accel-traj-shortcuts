@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse, Rectangle
 
 from compute_traj_segment import compute_traj_segment
+from time_optimal_straight_line import time_optimal_starigh_line
 from get_motion_state import get_motion_states_at_global_t, get_motion_states_at_local_t
 
 class Smoother:
@@ -58,6 +59,10 @@ class Smoother:
         if not self.generate_initial_traj():
             return self.path, None, None    # NOTE: sometimes collision will happen to the initial trajectory.
 
+        # Plot the initial trajectory
+        if plot_traj:
+            self.plot_traj(0, save_frames=save_frames, save_path=save_path) 
+
         for iteration in range(self.max_iterations):
             total_time = np.sum(self.traj_segment_times)
             self.total_time.append(total_time)
@@ -90,7 +95,7 @@ class Smoother:
         
         for i in range(self.path.shape[0] - 1):
             start_state, end_state = self.path[i], self.path[i + 1]
-            traj_segment_time, traj_segment_param, traj_feasibility = compute_traj_segment(start_state, end_state, self.vmax, self.amax, 
+            traj_segment_time, traj_segment_param, traj_feasibility = time_optimal_starigh_line(start_state, end_state, self.vmax, self.amax, 
                                                                          collision_checker=self.collision_checker, bounds=self.bounds, n_dim=self.dimension)
             if traj_segment_param is None or not traj_feasibility:
                 return False
@@ -193,7 +198,7 @@ class Smoother:
 
         return True
     
-    def plot_traj(self, iteration: int, shortcut_start: tuple, shortcut_end: tuple, 
+    def plot_traj(self, iteration: int, shortcut_start=None, shortcut_end=None, 
                   candidate_shortcut_time=None, candidate_shortcut_param=None, save_frames=False, save_path="smoothing_frames"):
         """
         Plot the current trajectory of the smoother object in 2D with animation during smoothing.
@@ -204,8 +209,8 @@ class Smoother:
 
         Args:
             iteration (int): The current iteration number to display on the plot.
-            shortcut_start (tuple): A tuple representing the start point of the shortcut (x, y).
-            shortcut_end (tuple): A tuple representing the end point of the shortcut (x, y).
+            shortcut_start (tuple, optional): A tuple representing the start point of the shortcut (x, y).
+            shortcut_end (tuple, optional): A tuple representing the end point of the shortcut (x, y).
             candidate_shortcut_time (float, optional): The time duration for the candidate shortcut to be visualized.
             candidate_shortcut_param (optional): Parameters defining the candidate shortcut, if applicable.
             save_frames (bool): Whether to save frames for gif.
@@ -260,9 +265,12 @@ class Smoother:
         # Update milestones and shortcut points and optionally candidate shortcut
         initial_positions = np.array([state[0] for state in self.path])
         self._milestones.set_data(initial_positions[:, 0], initial_positions[:, 1])
-        self._shortcut_points.set_data([shortcut_start[0][0], shortcut_end[0][0]], [shortcut_start[0][1], shortcut_end[0][1]])
-        
-        if candidate_shortcut_time is not None and candidate_shortcut_param is not None:
+        if shortcut_start is not None and shortcut_end is not None:
+            self._shortcut_points.set_data([shortcut_start[0][0], shortcut_end[0][0]], [shortcut_start[0][1], shortcut_end[0][1]])
+        else:
+            self._shortcut_points.set_data([], [])
+
+        if shortcut_start is not None and shortcut_end is not None and candidate_shortcut_time is not None and candidate_shortcut_param is not None:
             times = np.linspace(0, candidate_shortcut_time, 20)
             positions = np.array([get_motion_states_at_local_t(shortcut_start, candidate_shortcut_param, t, n_dim=self.dimension)[0] for t in times 
                                   if get_motion_states_at_local_t(shortcut_start, candidate_shortcut_param, t, n_dim=self.dimension)[0] is not None])
