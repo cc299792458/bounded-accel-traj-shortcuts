@@ -30,14 +30,17 @@ To better visualize the process of smoothing, see the GIF below:
 
 ### Some Core Components
 
+- **[Time-Optimal Straight-Line Trajectories](https://github.com/cc299792458/bounded-accel-traj-shortcuts/blob/main/time_optimal_straight_line.py)**  
+  This corresponds to Section IV.A of the paper. It computes a time-optimal **straight-line** trajectory between two states, as opposed to [Univariate Time-Optimal Interpolants](https://github.com/cc299792458/bounded-accel-traj-shortcuts/blob/main/univariate_time_optimal.py) which may produce curves. Generating a straight-line trajectory allows it to be directly used by geometric planning algorithms that rely on straight-line steering methods.
+  
+- **[Time-Optimal, Bounded-Acceleration, Bounded-Velocity Interpolants](https://github.com/cc299792458/bounded-accel-traj-shortcuts/blob/main/compute_traj_segment.py)**  
+  This corresponds to Section IV.B of the paper. This utilizes [Univariate Time-Optimal Interpolants](https://github.com/cc299792458/bounded-accel-traj-shortcuts/blob/main/univariate_time_optimal.py) and [Minimum-Acceleration Interpolants](https://github.com/cc299792458/bounded-accel-traj-shortcuts/blob/main/minimum_acceleration.py) to compute a time-optimal trajectory under given boundary conditions with velocity and acceleration constraints in the multi-dimensional case. It first calculates the shortest time for each dimension, taking the longest of these times as the trajectory time. Then, based on this time, it calculates the minimum acceleration required for each dimension. Finally, the function checks whether the computed trajectory is collision-free and within bounds.
+
 - **[Univariate Time-Optimal Interpolants](https://github.com/cc299792458/bounded-accel-traj-shortcuts/blob/main/univariate_time_optimal.py)**  
   This corresponds to Section IV.C of the paper. It calculates the shortest time required for a segment given the boundary conditions and velocity/acceleration constraints. **This problem always has a solution**. The file also provides several examples.
 
 - **[Minimum-Acceleration Interpolants](https://github.com/cc299792458/bounded-accel-traj-shortcuts/blob/main/minimum_acceleration.py)**  
   This corresponds to Section IV.D of the paper. It computes the minimum acceleration needed for a segment given the boundary conditions along with velocity and time constraints. **Note that this problem may not always have a solution**. An explaination has been included in the paper ["Probabilistically Complete Kinodynamic Planning  for Robot Manipulators with Acceleration Limits"](https://ieeexplore.ieee.org/abstract/document/6943083). The file similarly includes some examples.
-
-- **[compute_trajectory_segment](https://github.com/cc299792458/bounded-accel-traj-shortcuts/blob/main/compute_traj_segment.py)**  
-  This utilizes [Univariate Time-Optimal Interpolants](https://github.com/cc299792458/bounded-accel-traj-shortcuts/blob/main/univariate_time_optimal.py) and [Minimum-Acceleration Interpolants](https://github.com/cc299792458/bounded-accel-traj-shortcuts/blob/main/minimum_acceleration.py) to compute a time-optimal trajectory under given boundary conditions with velocity and acceleration constraints in the multi-dimensional case. It first calculates the shortest time for each dimension, taking the longest of these times as the trajectory time. Then, based on this time, it calculates the minimum acceleration required for each dimension. Finally, the function checks whether the computed trajectory is collision-free and within bounds.
 
 - **[get motion state](https://github.com/cc299792458/bounded-accel-traj-shortcuts/blob/main/get_motion_state.py)**  
   This returns the motion state given a time t, whether it is within a specific trajectory segment (local) or across the entire trajectory (global).
