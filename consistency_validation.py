@@ -26,7 +26,7 @@ if __name__ == '__main__':
         assert np.isclose(amin, amax)
         assert amin <= amax
 
-    # There is an example demonstrating that as the total time increases, the required acceleration can increase rather than decrease.
+    # There is an example demonstrating that as the total time increases, the problem could become infeasible.
     try:
         start_pos, end_pos = np.array([0]), np.array([5])
         start_vel, end_vel = np.array([10]), np.array([10])
@@ -37,4 +37,4 @@ if __name__ == '__main__':
         trajectories, optimal_label = minimum_acceleration_interpolants(start_pos, end_pos, start_vel, end_vel, vmax, T, amax)
         amin = trajectories[optimal_label][0]
     except:
-        print("The minimum required acceleration can exceed the maximum available acceleration although the total time increase.")
+        print("This problem can become infeasible althought the total time is longer than minimal time.")
