@@ -44,7 +44,7 @@ class Smoother:
         self.obstacles = obstacles
         self.total_time = []
 
-    def smooth_path(self, plot_traj=False, save_frames=False, save_path="smoothing_frames"):
+    def smooth(self, plot_traj=False, save_frames=False, save_path="smoothing_frames"):
         """
         Smooth the traj using time-optimal segments and shortcuts.
 
