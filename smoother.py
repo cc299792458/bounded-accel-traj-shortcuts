@@ -282,6 +282,10 @@ class Smoother:
         if iteration is not None:
             self._iteration_text.set_text(f"Iteration: {iteration}")
 
+        # Redraw the plot
+        self._fig.canvas.draw()
+        plt.pause(0.1)
+
         # Save the frame if requested
         if save_frames:
             if not os.path.exists(save_path):
@@ -290,10 +294,6 @@ class Smoother:
                 self.frame_index = 0
             self._fig.savefig(f"{save_path}/frame_{self.frame_index:03d}.png")
             self.frame_index += 1
-
-        # Redraw the plot
-        self._fig.canvas.draw()
-        plt.pause(0.1)
 
     def interpolate_control_trajectory(self, control_frequency=60):
         """
