@@ -198,6 +198,31 @@ class Smoother:
 
         return True
     
+    def interpolate_control_trajectory(self, control_frequency=60):
+        """
+        Interpolates the trajectory at a given control frequency.
+
+        This function samples the trajectory at uniform time intervals based on 
+        the specified control frequency and returns the interpolated trajectory.
+
+        Parameters:
+        - control_frequency: The frequency (Hz) at which to sample the trajectory.
+
+        Returns:
+        - A numpy array of interpolated trajectory states [(position, velocity)].
+        """
+        total_time = np.sum(self.traj_segment_times)
+        num_points = int(total_time * control_frequency) + 1
+        times = np.linspace(0, total_time, num_points)
+        interpolated_trajectory = []
+        for t in times:
+            state = get_motion_states_at_global_t(self.path, self.traj_segment_times, self.traj_segment_params, t, n_dim=self.dimension)
+            if state is not None:
+                interpolated_trajectory.append(state)
+        interpolated_trajectory = np.array(interpolated_trajectory)
+
+        return interpolated_trajectory
+    
     def plot_traj(self, iteration: int, shortcut_start=None, shortcut_end=None, 
                   candidate_shortcut_time=None, candidate_shortcut_param=None, save_frames=False, save_path="smoothing_frames"):
         """
@@ -294,28 +319,3 @@ class Smoother:
                 self.frame_index = 0
             self._fig.savefig(f"{save_path}/frame_{self.frame_index:03d}.png")
             self.frame_index += 1
-
-    def interpolate_control_trajectory(self, control_frequency=60):
-        """
-        Interpolates the trajectory at a given control frequency.
-
-        This function samples the trajectory at uniform time intervals based on 
-        the specified control frequency and returns the interpolated trajectory.
-
-        Parameters:
-        - control_frequency: The frequency (Hz) at which to sample the trajectory.
-
-        Returns:
-        - A numpy array of interpolated trajectory states [(position, velocity)].
-        """
-        total_time = np.sum(self.traj_segment_times)
-        num_points = int(total_time * control_frequency) + 1
-        times = np.linspace(0, total_time, num_points)
-        interpolated_trajectory = []
-        for t in times:
-            state = get_motion_states_at_global_t(self.path, self.traj_segment_times, self.traj_segment_params, t, n_dim=self.dimension)
-            if state is not None:
-                interpolated_trajectory.append(state)
-        interpolated_trajectory = np.array(interpolated_trajectory)
-
-        return interpolated_trajectory
