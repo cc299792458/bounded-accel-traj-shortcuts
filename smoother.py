@@ -112,15 +112,24 @@ class Smoother:
 
         Input:
         - total_time: The total duration of the traj
-        - min_time_interval: Minimal time interval between t1 and t2
+        - min_time_interval: Minimal time interval between t1, t2, and path states
 
         Return:
         - t1, t2: Two random times within the total traj duration.
         """
-        t1 = t2 = 0
-        while t2 - t1 < min_time_interval:
-            random_times = np.random.uniform(0, total_time, 2)
-            t1, t2 = np.sort(random_times)
+        # Precompute forbidden times: start (0) and cumulative trajectory times
+        state_times = [0] + list(np.cumsum(self.traj_segment_times))
+        # Adjust min_time_interval within bounds
+        min_time_interval = max(min(min_time_interval, self.total_time[-1] / 100), 0.001)
+        while True:
+            # Generate and sort two random times in [0, total_time]
+            t1, t2 = np.sort(np.random.uniform(0, total_time, 2))
+            if t2 - t1 < min_time_interval:
+                continue  # Interval too short
+            # Check if either time is too close to any forbidden time
+            if any(abs(t - f) < min_time_interval for t in (t1, t2) for f in state_times):
+                continue
+            break
         return t1, t2
 
     def update_traj(self, start_state, end_state, t1, t2, shortcut_traj_time, shortcut_traj_param):
